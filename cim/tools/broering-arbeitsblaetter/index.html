@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bröring-Arbeitsblätter: TPM · VPC · Ecosystem Pie</title>
+<style>
+  :root{--bg:#f6f5f1;--card:#fff;--ink:#1d1f22;--muted:#6b6f76;--line:#e2e0da;--accent:#1f5f8b;--soft:#e8f0f6;--warn:#9a5b00;--warnbg:#fff4df;--ok:#2e7d4f}
+  @media (prefers-color-scheme: dark){:root{--bg:#16181b;--card:#1f2226;--ink:#ececec;--muted:#9aa0a8;--line:#33373d;--accent:#6aa9d6;--soft:#1f3242;--warn:#f2c46b;--warnbg:#3a2f1a;--ok:#5cc28a}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+  header{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start}
+  h1{font-size:23px;margin:0 0 2px;font-weight:600}
+  header p{margin:0;color:var(--muted);font-size:14px}
+  .tools{display:flex;gap:6px;flex-wrap:wrap}
+  .btn{border:1px solid var(--accent);background:var(--accent);color:#fff;padding:7px 13px;border-radius:7px;font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--accent)}
+  .btn.small{padding:4px 9px;font-size:13px}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;margin:18px 0 14px;border-bottom:1px solid var(--line)}
+  .tabs button{border:0;background:none;color:var(--muted);padding:9px 12px;font:inherit;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+  .card h2{font-size:17px;margin:0 0 4px;font-weight:600}
+  .card h3{font-size:15px;margin:16px 0 4px;font-weight:600}
+  label{display:block;font-weight:500;font-size:13px;margin:10px 0 3px}
+  .help{font-size:12.5px;color:var(--muted);margin:0 0 4px}
+  input,select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);font:inherit;font-size:14px}
+  select option{color:#000}
+  textarea{min-height:84px;resize:vertical}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:0 14px}
+  @media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .info{background:var(--soft);border-radius:9px;padding:11px 14px;font-size:13.5px;margin:6px 0 4px}
+  .info b{font-weight:600}
+  .warn{background:var(--warnbg);color:var(--ink);border-left:3px solid var(--warn);border-radius:6px;padding:8px 12px;font-size:13px;margin:8px 0}
+  .warn b{color:var(--warn)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .link{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px}
+  .link.focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:17px}
+  .actor{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px}
+  .actor summary{cursor:pointer;display:flex;gap:10px;align-items:center;flex-wrap:wrap;list-style:none}
+  .actor summary::-webkit-details-marker{display:none}
+  .amp{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.25)}
+  .preview{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .preview svg{display:block;width:100%;height:auto}
+  .exp{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
+  .toast{color:var(--ok);font-size:13.5px}
+  .chk{display:flex;gap:6px;align-items:center;font-weight:400;margin:0}
+  .chk input{width:auto}
+  pre{white-space:pre-wrap;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;max-height:480px;overflow:auto}
+  .modal{border:1px solid #c0392b;border-radius:10px;padding:10px 12px;margin-top:10px;background:var(--card)}
+  .fit{font-size:13px;margin-top:6px}
+  .fit span{display:inline-block;margin-right:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Bröring-Arbeitsblätter</h1>
+      <p>Technologie-Produkt-Markt-Verbindungen · Value Proposition Canvas · Ecosystem Pie Model – ausfüllen, als Original-Arbeitsblatt ausgeben, speichern und laden.</p>
+    </div>
+    <div class="tools">
+      <label class="btn ghost small" style="margin:0;color:var(--accent)">Laden (.md / .json)<input type="file" id="loadfile" accept=".md,.json,text/markdown,application/json" style="display:none"></label>
+      <button class="btn ghost small" id="savejson">Speichern (.json)</button>
+      <button class="btn ghost small" id="savemd">Speichern (.md)</button>
+      <button class="btn ghost small" id="newp">Neu</button>
+    </div>
+  </header>
+  <div id="confirm"></div>
+  <span class="toast" id="gtoast"></span>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="view"></main>
+</div>
+<script>
+/* ===================== Modell ===================== */
+const TABS=[["projekt","Projekt"],["tpm","1 · Technologie-Produkt-Markt"],["vpc","2 · Value Proposition Canvas"],["epm","3 · Ecosystem Pie Model"],["export","Export"]];
+const SHEETS={tpm:"Technologie-Produkt-Markt Verbindungen",vpc:"Value Proposition Canvas",epm:"Ecosystem Pie Model"};
+const PAGE={tpm:1,vpc:2,epm:3};
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const blankLink=()=>({id:uid(),idea:"",props:"",segment:"",need:"",focus:false});
+const blankActor=(n="")=>({id:uid(),name:n,abh:"M",res:"",act:"",ws:"",vc:"",risk:"",amp:"gelb",user:false});
+function fresh(){return {v:1,tab:"projekt",
+  meta:{project:"",author:"",date:today(),version:"",context:""},
+  tpm:{name:"",specs:"",links:[blankLink(),blankLink(),blankLink()]},
+  vpc:{segment:"",jobs:"",pains:"",gains:"",products:"",relievers:"",creators:""},
+  epm:{segment:"Marktsegment #1",vp:"",actors:[blankActor("Akteur 1"),blankActor("Akteur 2"),blankActor("Akteur 3"),{...blankActor("Nutzer"),user:true,abh:"H"}],insights:""}};}
+const KEY="broering-sheets-v1";
+let S; try{S=normalize(JSON.parse(localStorage.getItem(KEY)));}catch(e){S=fresh();}
+function normalize(o){const f=fresh(); if(!o||typeof o!=="object") return f;
+  const r={...f,...o}; r.meta={...f.meta,...(o.meta||{})}; r.tpm={...f.tpm,...(o.tpm||{})}; r.vpc={...f.vpc,...(o.vpc||{})}; r.epm={...f.epm,...(o.epm||{})};
+  if(!Array.isArray(r.tpm.links)||!r.tpm.links.length) r.tpm.links=f.tpm.links;
+  r.tpm.links=r.tpm.links.map(l=>({...blankLink(),...l}));
+  if(!Array.isArray(r.epm.actors)||!r.epm.actors.length) r.epm.actors=f.epm.actors;
+  r.epm.actors=r.epm.actors.map(a=>({...blankActor(),...a}));
+  if(!TABS.some(t=>t[0]===r.tab)) r.tab="projekt"; return r;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ===================== Helfer ===================== */
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mdc=s=>String(s??"").replace(/\|/g,"\\|").replace(/\n+/g,"<br>");
+const items=t=>String(t||"").split(/\n/).map(x=>x.replace(/^\s*[-–•*]\s*/,"").trim()).filter(Boolean);
+const fd=s=>{const d=new Date(s+"T00:00:00");return isNaN(d)?"":d.toLocaleDateString("de-DE");};
+function getPath(o,p){return p.split(".").reduce((a,k)=>a==null?a:a[k],o);}
+function setPath(o,p,v){const ks=p.split(".");let a=o;for(let i=0;i<ks.length-1;i++)a=a[ks[i]];a[ks.at(-1)]=v;}
+const b64e=t=>btoa(unescape(encodeURIComponent(t)));
+const b64d=t=>decodeURIComponent(escape(atob(t)));
+function wrap(text,max){const out=[];String(text||"").split(/\n/).forEach(par=>{let line="";par.split(/\s+/).filter(Boolean).forEach(w=>{
+  while(w.length>max){ if(line){out.push(line);line="";} out.push(w.slice(0,max-1)+"-"); w=w.slice(max-1);}
+  if(!line) line=w; else if((line+" "+w).length<=max) line+=" "+w; else {out.push(line);line=w;}});if(line)out.push(line);});return out;}
+function clip(lines,n){ if(lines.length<=n) return lines; const r=lines.slice(0,n); r[n-1]=r[n-1].replace(/.{0,2}$/,"")+"…"; return r; }
+function bulletLines(list,max){const out=[];list.forEach(it=>{wrap(it,max-2).forEach((l,i)=>out.push({t:l,first:i===0}));});return out;}
+function subtitle(sheet){const m=S.meta; const seg=sheet==="vpc"?(S.vpc.segment?`Kundensegment: ${S.vpc.segment}`:""):sheet==="epm"?(S.epm.segment||""):"";
+  return [m.project,m.version?`Version ${m.version}`:"",seg,m.context,m.author,m.date?`Stand ${fd(m.date)}`:""].filter(Boolean).join(" · ");}
+
+/* ===================== SVG: Rahmen ===================== */
+const INK="#1f3a93", GR="#6b6b6b", F='font-family="Arial, Helvetica, sans-serif"';
+const T=(x,y,t,o="")=>`<text x="${x}" y="${y}" ${o}>${esc(t)}</text>`;
+function frame(sheet,body){
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1190 842" width="1190" height="842" ${F}>
+<rect width="1190" height="842" fill="#ffffff"/>
+${T(40,52,SHEETS[sheet],'font-size="22" font-weight="bold" fill="#222"')}
+${T(40,72,subtitle(sheet),'font-size="9" font-style="italic" fill="#777"')}
+${body}
+<rect x="28" y="796" width="24" height="15" fill="#c8c8c8"/>${T(40,807,PAGE[sheet],'font-size="8" fill="#555" text-anchor="middle"')}
+<rect x="54" y="796" width="368" height="15" fill="#c4c4c4"/>${T(147,807,"Prof. Dr. Stefanie Bröring",'font-size="7.5" font-weight="bold" fill="#fff"')}
+<rect x="422" y="796" width="742" height="15" fill="#a9a9a9"/>${T(676,807,"Chair for Entrepreneurship and innovative business models",'font-size="7.5" font-weight="bold" fill="#fff" text-anchor="middle"')}
+</svg>`;}
+function textBlock(x,y,lines,o={}){const fs=o.fs||10.5,lh=o.lh||fs*1.25,fill=o.fill||INK;
+  return lines.map((l,i)=>{const t=typeof l==="string"?l:((l.first?"– ":"   ")+l.t);return `<text x="${x}" y="${(y+i*lh).toFixed(1)}" font-size="${fs}" fill="${fill}" ${o.anchor?`text-anchor="${o.anchor}"`:""} ${o.weight?`font-weight="${o.weight}"`:""}>${esc(t)}</text>`;}).join("");}
+
+/* ===================== SVG: TPM ===================== */
+function svgTPM(){
+  const t=S.tpm, links=t.links.length?t.links:[blankLink()], n=links.length;
+  const ox=330, oy=410, top=200, bottom=715, slot=(bottom-top)/n;
+  let b="";
+  b+=T(520,170,"Produkt",'font-size="15" font-weight="bold" fill="#222"')+T(860,155,"Markt",'font-size="15" font-weight="bold" fill="#222"');
+  b+=T(110,300,"Technologie",'font-size="15" font-weight="bold" fill="#222"');
+  b+=T(110,345,"Name:",'font-size="13" fill="#222"');
+  b+=textBlock(158,345,clip(wrap(t.name,32),7),{fs:10.5,lh:13});
+  b+=T(110,460,"Technologische",'font-size="13" fill="#222"')+T(110,477,"Spezifikationen:",'font-size="13" fill="#222"');
+  b+=textBlock(110,502,clip(bulletLines(items(t.specs),40),14),{fs:10.5});
+  links.forEach((l,i)=>{const y0=top+i*slot; const cap=Math.max(1,Math.floor((slot*0.45-6)/12.5));
+    const ty=y0+18;
+    b+=`<line x1="${ox}" y1="${oy}" x2="510" y2="${ty-4}" stroke="${l.focus?INK:"#8a8a8a"}" stroke-width="${l.focus?2.4:1.1}"/>`;
+    if(l.focus) b+=`<rect x="432" y="${ty-30}" width="44" height="15" rx="7" fill="${INK}"/>`+T(454,ty-19.5,"Fokus",'font-size="9" fill="#fff" text-anchor="middle" font-weight="bold"');
+    b+=T(520,ty,"Produktidee:",'font-size="12" fill="#222"')+textBlock(600,ty,clip(wrap(l.idea,42),cap),{fs:10.5});
+    const ey=y0+slot*0.48+10;
+    b+=T(520,ey,"Eigenschaft:",'font-size="12" fill="#222"')+textBlock(600,ey,clip(bulletLines(items(l.props),42),cap+1),{fs:10.5});
+    b+=T(860,ty,"Marktsegment:",'font-size="12" fill="#222"')+textBlock(860,ty+14,clip(bulletLines(items(l.segment),38),cap),{fs:10.5});
+    b+=T(860,ey,"Kundenbedürfnis:",'font-size="12" fill="#222"')+textBlock(860,ey+14,clip(bulletLines(items(l.need),38),cap),{fs:10.5});
+  });
+  b+=`<circle cx="${ox}" cy="${oy}" r="2.5" fill="#666"/>`;
+  b+=`<line x1="116" y1="742" x2="1114" y2="742" stroke="#888" stroke-width="1.6"/><path d="M106 742 l12 -5 l0 10 z" fill="#888"/><path d="M1124 742 l-12 -5 l0 10 z" fill="#888"/>`;
+  b+=T(110,768,"Technische Fähigkeiten",'font-size="14" fill="#222"')+T(520,768,"Produkteigenschaften",'font-size="14" fill="#222"')+T(860,768,"Kundenbedürfnisse",'font-size="14" fill="#222"');
+  return frame("tpm",b);
+}
+
+/* ===================== SVG: VPC ===================== */
+function svgVPC(){
+  const v=S.vpc; let b="";
+  const sq={x1:62,y1:150,x2:550,y2:688}, jx=312, jy=418, cx=855, cy=419, r=276;
+  b+=`<rect x="${sq.x1}" y="${sq.y1}" width="${sq.x2-sq.x1}" height="${sq.y2-sq.y1}" fill="none" stroke="#555" stroke-width="1"/>`;
+  b+=`<line x1="${sq.x1}" y1="${sq.y1}" x2="${jx}" y2="${jy}" stroke="#555"/><line x1="${sq.x1}" y1="${sq.y2}" x2="${jx}" y2="${jy}" stroke="#555"/>`;
+  b+=`<line x1="${jx}" y1="${jy}" x2="${cx}" y2="${cy}" stroke="#555"/><path d="M${cx-r-12} ${cy} l10 -4.5 l0 9 z" fill="#555"/>`;
+  b+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#555"/>`;
+  const p1=[cx+r*Math.cos(-50*Math.PI/180),cy+r*Math.sin(-50*Math.PI/180)], p2=[cx+r*Math.cos(50*Math.PI/180),cy+r*Math.sin(50*Math.PI/180)];
+  b+=`<line x1="${cx}" y1="${cy}" x2="${p1[0]}" y2="${p1[1]}" stroke="#555"/><line x1="${cx}" y1="${cy}" x2="${p2[0]}" y2="${p2[1]}" stroke="#555"/>`;
+  // Icons
+  b+=`<g transform="translate(${jx-8},${jy-7})" stroke="#666" fill="none"><rect x="0" y="3" width="15" height="11"/><line x1="7.5" y1="3" x2="7.5" y2="14"/><line x1="0" y1="7" x2="15" y2="7"/></g>`;
+  b+=`<g transform="translate(${cx-7},${cy-12})" fill="#666"><circle cx="7" cy="4" r="4"/><path d="M0 13 q7 -8 14 0 z"/></g>`;
+  const face=(x,y,sad)=>`<g transform="translate(${x},${y})" stroke="#333" fill="none" stroke-width="1"><circle r="6.5"/><circle cx="-2.3" cy="-1.5" r=".6" fill="#333"/><circle cx="2.3" cy="-1.5" r=".6" fill="#333"/><path d="${sad?"M-3 3.3 q3 -2.6 6 0":"M-3 1.6 q3 2.8 6 0"}"/></g>`;
+  b+=face(796,141,false)+T(806,145,"Gains",'font-size="13" font-weight="bold" fill="#222"');
+  b+=face(776,435,true)+T(786,439,"Pains",'font-size="13" font-weight="bold" fill="#222"');
+  b+=T(1045,330,"Customer",'font-size="13" font-weight="bold" fill="#222" text-anchor="middle"')+T(1045,347,"Jobs",'font-size="13" font-weight="bold" fill="#222" text-anchor="middle"');
+  b+=T(540,170,"Gain creators",'font-size="13" font-weight="bold" fill="#222" text-anchor="end"')+T(540,672,"Pain relievers",'font-size="13" font-weight="bold" fill="#222" text-anchor="end"');
+  b+=textBlock(73,286,["Produkte","& Dienst-","leistungen"],{fs:13,fill:"#222",weight:"bold",lh:16.5});
+  b+=textBlock(73,348,clip(bulletLines(items(v.products),24),26),{fs:9.4,lh:12});
+  b+=textBlock(292,192,clip(bulletLines(items(v.creators),48),15),{fs:10.5,lh:13});
+  b+=textBlock(308,446,clip(bulletLines(items(v.relievers),44),15),{fs:10.5,lh:13});
+  b+=textBlock(686,228,clip(bulletLines(items(v.gains),36),13),{fs:10.5,lh:13});
+  b+=textBlock(934,372,clip(bulletLines(items(v.jobs),30),19),{fs:10.5,lh:13});
+  b+=textBlock(680,465,clip(bulletLines(items(v.pains),36),15),{fs:10.5,lh:13});
+  b+=textBlock(68,714,["Value Map:"],{fs:11,fill:"#222",weight:"bold"})+textBlock(68,730,["Beschreibung der Charakteristika des Leistungs-","versprechens"],{fs:10,fill:"#222",lh:13});
+  b+=textBlock(613,714,["Kundenprofil:"],{fs:11,fill:"#222",weight:"bold"})+textBlock(613,730,["Strukturierte und detaillierte Beschreibung","eines bestimmten Kundensegments"],{fs:10,fill:"#222",lh:13});
+  return frame("vpc",b);
+}
+
+/* ===================== SVG: Ecosystem Pie ===================== */
+const AMP={rot:"#f4b6b6",gelb:"#fbe3a1",grün:"#c5e3c3"};
+const RINGS=[["Akteur",272,318,8.6],["Ressourcen",228,272,7.4],["Aktivitäten",186,228,7.4],["Wertschöpfung",147,186,7.4],["Value Capture",114,147,7.2],["Risiko",84,114,6.6]];
+const FIELDS=["name","res","act","ws","vc","risk"];
+function svgEPM(){
+  const e=S.epm, A=e.actors, N=A.length+1, a=360/N, cx=600, cy=448, R=318;
+  const rad=d=>d*Math.PI/180, P=(r,deg)=>[cx+r*Math.sin(rad(deg)),cy-r*Math.cos(rad(deg))];
+  const sector=(r1,r2,d1,d2,fill)=>{const [x1,y1]=P(r2,d1),[x2,y2]=P(r2,d2),[x3,y3]=P(r1,d2),[x4,y4]=P(r1,d1),lg=d2-d1>180?1:0;
+    return `<path d="M${x1} ${y1} A${r2} ${r2} 0 ${lg} 1 ${x2} ${y2} L${x3} ${y3} A${r1} ${r1} 0 ${lg} 0 ${x4} ${y4} Z" fill="${fill}" stroke="#777" stroke-width="0.9"/>`;};
+  const label=(r,deg,lines,fs,o="")=>{const [x,y]=P(r,deg); let rot=deg; if(deg>90&&deg<270) rot=deg-180; const lh=fs*1.18;
+    return lines.map((l,j)=>`<text x="0" y="${((j-(lines.length-1)/2)*lh+fs*0.35).toFixed(1)}" font-size="${fs}" text-anchor="middle" ${o} transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${rot.toFixed(1)})">${esc(l)}</text>`).join("");};
+  let b="";
+  // Label-Sektor
+  RINGS.forEach(([n,r1,r2])=>{b+=sector(r1,r2,-a,0,"#ffffff");});
+  // Akteure
+  A.forEach((ac,k)=>{const d1=k*a,d2=(k+1)*a,mid=(d1+d2)/2;
+    RINGS.forEach(([n,r1,r2,fs],ri)=>{const f=FIELDS[ri];
+      const fill=ri===5?(AMP[ac.amp]||"#fff"):(ac.user?"#eef2fb":"#ffffff");
+      b+=sector(r1,r2,d1,d2,fill);
+      const rm=(r1+r2)/2, arc=rm*rad(a)*0.92, max=Math.max(6,Math.floor(arc/(fs*0.52))), maxL=Math.max(1,Math.floor((r2-r1-4)/(fs*1.18)));
+      let txt=f==="name"?`${ac.name||"Akteur"} · Abh. ${ac.abh}`:ac[f];
+      const lines=clip(wrap(txt,max),maxL);
+      b+=label(rm,mid,lines,fs,f==="name"?'font-weight="bold" fill="#111"':ri===5?'fill="#333"':`fill="${INK}"`);
+    });
+  });
+  // Ringbeschriftung im Label-Sektor
+  RINGS.forEach(([n,r1,r2])=>{const fs=n==="Akteur"||n==="Ressourcen"||n==="Aktivitäten"||n==="Wertschöpfung"?12.5:n==="Value Capture"?10.5:10.5;
+    b+=label((r1+r2)/2,-a/2,[n],fs,'font-weight="bold" fill="#333"');});
+  // Mitte
+  const r0=84; b+=`<circle cx="${cx}" cy="${cy}" r="${r0}" fill="#fff" stroke="#777" stroke-width="0.9"/>`;
+  b+=T(cx,cy-44,"Ökosystem Value Proposition",'font-size="9" font-weight="bold" text-anchor="middle" fill="#111"');
+  b+=centerText(e.vp,cx,cy,r0);
+  // Außenbeschriftungen
+  const ui=A.findIndex(x=>x.user);
+  if(ui>=0){const mid=(ui+0.5)*a; b+=label(R+16,mid,[`${e.segment||"Marktsegment #1"} (Nutzer)`],11,'fill="#888"');}
+  b+=label(R+15,a*0.5,["Akteur #1  →"],11,'fill="#999" font-style="italic"');
+  // Legende links
+  const defs=[["Ressourcen",", die dem Akteur zur Verfügung stehen und die er für die Wertschöpfung innerhalb des Ökosystems nutzen kann."],["Aktivitäten",", die bei der Umwandlung von Ressourcen in einen Mehrwert für das Ökosystem durchgeführt werden."],["Wertschöpfung:"," der einzigartige produktive Beitrag des Akteurs zum Ökosystem"],["Value capture:"," die Art, der Mechanismus und die Menge des vom Akteur erfassten Wertes"],["Risiko:"," die potenzielle Unfähigkeit und Unwilligkeit des Akteurs, seinen produktiven Beitrag zum Ökosystem zu leisten (Kennzeichnung durch farbliche Markierung: rot, gelb, grün)"],["Abhängigkeit (L/M/H):"," wirtschaftliche Abhängigkeit des Akteurs vom Erreichen des Wertversprechens (Talmar et al. 2020)"]];
+  let y=118; defs.forEach(([h,t])=>{const ls=wrap(h+t,50); ls.forEach((l,i)=>{ if(i===0){ b+=`<text x="40" y="${y}" font-size="8.6" fill="#222"><tspan font-weight="bold">${esc(l.slice(0,h.length))}</tspan>${esc(l.slice(h.length))}</text>`;} else b+=T(40,y,l,'font-size="8.6" fill="#222"'); y+=10.6;}); y+=5;});
+  y+=8; b+=T(40,y,"Risiko-Ampel",'font-size="8.6" font-weight="bold" fill="#222"'); y+=6;
+  [["rot","rot – hohes Risiko"],["gelb","gelb – mittleres Risiko"],["grün","grün – geringes Risiko"]].forEach(([k,l])=>{b+=`<rect x="40" y="${y}" width="8" height="8" fill="${AMP[k]}" stroke="#888" stroke-width=".6"/>`+T(52,y+7.5,l,'font-size="8.6" fill="#222"'); y+=12;});
+  b+=textBlock(952,98,wrap("Die Organisationen, Institutionen, Gemeinschaften und Einzelpersonen, die auf der Angebotsseite des Ökosystems an der Wertschöpfung und -erfassung beteiligt sind. Im Uhrzeigersinn in Richtung Endnutzer positioniert.",50),{fs:8.6,fill:"#222",lh:10.4});
+  const ins=items(e.insights);
+  if(ins.length){ b+=T(952,500,"Erkenntnisse",'font-size="10" font-weight="bold" fill="#1f5f8b"'); b+=textBlock(952,517,clip(bulletLines(ins,48),26),{fs:8.6,lh:10.4}); }
+  return frame("epm",b);
+}
+function centerText(text,cx,cy,r0){const fs=7.4,lh=9.2,cw=fs*0.5,y0=-30; const words=String(text||"").split(/\s+/).filter(Boolean); const out=[]; let k=0, y=y0;
+  while(k<words.length && y<r0-10){const half=Math.sqrt(Math.max(0,(r0-8)**2-(Math.abs(y)+3)**2)); const max=Math.max(8,Math.floor(2*half/cw)); let line="";
+    while(k<words.length){const w=words[k]; if(!line&&w.length>max){line=w.slice(0,max);k++;break;} if((line?line+" "+w:w).length<=max){line=line?line+" "+w:w;k++;} else break;}
+    out.push([line,y]); y+=lh;}
+  if(k<words.length&&out.length){const l=out[out.length-1]; l[0]=l[0].replace(/.{0,2}$/,"")+"…";}
+  return out.map(([l,y])=>`<text x="${cx}" y="${(cy+y).toFixed(1)}" font-size="${fs}" fill="${INK}" text-anchor="middle">${esc(l)}</text>`).join("");}
+const SVG={tpm:svgTPM,vpc:svgVPC,epm:svgEPM};
+
+/* ===================== Formulare ===================== */
+const view=document.getElementById("view");
+function render(){
+  document.getElementById("tabs").innerHTML=TABS.map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?"active":""}">${l}</button>`).join("");
+  view.innerHTML=({projekt:fProjekt,tpm:fTPM,vpc:fVPC,epm:fEPM,export:fExport}[S.tab])();
+  renderPreview(); if(S.tab==="export") setupExport();
+}
+function renderPreview(){const el=document.getElementById("pv"); if(el&&SVG[S.tab]) el.innerHTML=SVG[S.tab](); const fe=document.getElementById("fit"); if(fe) fe.innerHTML=fitCheck(); const te=document.getElementById("tpmwarn"); if(te) te.innerHTML=tpmCheck(); const ee=document.getElementById("epmwarn"); if(ee) ee.innerHTML=epmCheck();}
+const fld=(path,label,help,ph="",type="input",extra="")=>{const v=getPath(S,path)??"";
+  return `<div><label>${label}</label>${help?`<p class="help">${help}</p>`:""}${type==="textarea"?`<textarea data-b="${path}" placeholder="${esc(ph)}" ${extra}>${esc(v)}</textarea>`:`<input data-b="${path}" value="${esc(v)}" placeholder="${esc(ph)}" ${extra}>`}</div>`;};
+const exportBar=k=>`<div class="exp"><button class="btn small" data-exp="${k}|png">PNG</button><button class="btn ghost small" data-exp="${k}|svg">SVG</button><button class="btn ghost small" data-exp="${k}|md">Blatt als .md</button><button class="btn ghost small" data-exp="${k}|json">Blatt als .json</button><span class="toast" id="t-${k}"></span></div>`;
+const preview=k=>`<div class="card"><h2>Vorschau – ${SHEETS[k]}</h2><p class="help">So sieht das Arbeitsblatt aus. Aktualisiert sich beim Tippen.</p><div class="preview" id="pv"></div>${exportBar(k)}</div>`;
+
+function fProjekt(){return `<div class="card"><h2>Projekt</h2><p class="help">Diese Angaben stehen in der Kopfzeile aller drei Arbeitsblätter.</p>
+<div class="g2">${fld("meta.project","Projekt / Titel","","z. B. Smart-Service für Industrieanlagen")}${fld("meta.author","Bearbeitet von")}</div>
+<div class="g3">${fld("meta.version","Version","","z. B. 5")}<div><label>Stand</label><input type="date" data-b="meta.date" value="${esc(S.meta.date)}"></div>${fld("meta.context","Zusatz (optional)","","z. B. Pilotphase")}</div></div>
+<div class="card"><h2>Reihenfolge im Framework</h2><div class="info">
+<b>1. Technologie-Produkt-Markt-Verbindungen (TPM, Markham 2002):</b> Welche technische Fähigkeit wird zu welcher Produkteigenschaft und erfüllt welches Kundenbedürfnis? Am Ende <b>eine</b> Anwendung als Fokus wählen.<br>
+<b>2. Value Proposition Canvas:</b> Für das Fokus-Segment: Was will der Kunde erledigen, was nervt ihn, was wünscht er sich – und wie antwortet dein Angebot darauf?<br>
+<b>3. Ecosystem Pie Model (Talmar et al. 2020):</b> Wer muss mitmachen, damit das Wertversprechen funktioniert? Pro Akteur Beitrag, Nutzen, Abhängigkeit und Risiko.<br>
+Danach fließen die Ergebnisse in den Business Model Canvas (Bröring & Thybussek 2023).</div></div>`;}
+
+function tpmCheck(){const L=S.tpm.links; const w=[];
+  if(!L.some(l=>l.focus)) w.push("Noch keine Fokus-Anwendung gewählt. Das TPM endet mit der Entscheidung für <b>eine</b> Verbindung.");
+  L.forEach((l,i)=>{ const segs=String(l.segment||"").split(/[,;\n]/).map(x=>x.trim()).filter(Boolean); if(segs.length>1&&segs.every(x=>x.split(/\s+/).length<=3)) w.push(`Verbindung ${i+1}: ${segs.length} Marktsegmente. Besser je Verbindung ein Segment mit eigenem Bedürfnis – sonst lieber eine weitere Verbindung anlegen.`);
+    if(l.idea&&!items(l.need).length) w.push(`Verbindung ${i+1}: Kundenbedürfnis fehlt. Ohne Bedürfnis ist es nur Technik-Push.`);});
+  return w.map(x=>`<div class="warn"><b>Hinweis:</b> ${x}</div>`).join("");}
+function fTPM(){const t=S.tpm;return `<div class="card"><h2>Technologie-Produkt-Markt-Verbindungen</h2>
+<div class="info">Das Blatt liest sich von links nach rechts: <b>Technische Fähigkeiten → Produkteigenschaften → Kundenbedürfnisse</b>. Jede Linie ist eine mögliche Verbindung (eine Produktidee für ein Marktsegment). Ziel ist, Kundenwissen und Technologie-Fähigkeiten zusammenzubringen und <b>einen</b> Zielmarkt mit <b>einer</b> Anwendung festzulegen.</div>
+<h3>Technologie</h3>${fld("tpm.name","Name","Die fokale Technologie – so konkret wie möglich (nicht das Produkt).","z. B. Multisensor mit Sensorfusion")}
+${fld("tpm.specs","Technologische Spezifikationen","Ein Punkt pro Zeile. Was kann die Technik messbar besonders gut? Das sind die technischen Fähigkeiten, aus denen Eigenschaften werden.","robust gegen Staub und Feuchte\nwenig alternd\nniedriger Energiebedarf","textarea")}
+<h3>Verbindungen</h3><p class="help">Pro Verbindung: eine Produktidee, ihre Eigenschaften, ein Marktsegment und das konkrete Kundenbedürfnis dort.</p>
+${t.links.map((l,i)=>`<div class="link ${l.focus?"focus":""}"><div class="row" style="justify-content:space-between"><b>Verbindung ${i+1}</b><span class="row"><label class="chk"><input type="radio" name="focus" data-focus="${i}" ${l.focus?"checked":""}> Fokus-Anwendung</label>${t.links.length>1?`<button class="del" data-dellink="${i}" title="Entfernen">×</button>`:""}</span></div>
+<div class="g2"><div>${fld(`tpm.links.${i}.idea`,"Produktidee","Was wird aus der Technologie gebaut?","z. B. Zustandsüberwachung als Service")}
+${fld(`tpm.links.${i}.props`,"Eigenschaft(en)","Ein Punkt pro Zeile. Welche Produkteigenschaft folgt aus welcher technischen Fähigkeit?","erkennt Abweichungen früh\nmeldet die Ursache","textarea")}</div>
+<div>${fld(`tpm.links.${i}.segment`,"Marktsegment","Möglichst ein Segment, konkret (Branche + Kundentyp).","z. B. Betreiber von Produktionsanlagen")}
+${fld(`tpm.links.${i}.need`,"Kundenbedürfnis","Ein Punkt pro Zeile. Was braucht der Kunde in diesem Segment – in seinen Worten?","Ausfälle vermeiden","textarea")}</div></div></div>`).join("")}
+<div class="row" style="margin-top:10px"><button class="btn ghost small" id="addlink">+ Verbindung</button><span class="help" style="margin:0">Die Vorlage hat drei Verbindungen; bis zu sechs passen aufs Blatt.</span></div>
+<div id="tpmwarn"></div></div>${preview("tpm")}`;}
+
+function fitCheck(){const v=S.vpc,c=k=>items(v[k]).length;
+  const r=[];if(c("pains")>c("relievers")) r.push(`${c("pains")} Pains, aber nur ${c("relievers")} Pain Relievers – welche Pains bleiben offen?`);
+  if(c("gains")>c("creators")) r.push(`${c("gains")} Gains, aber nur ${c("creators")} Gain Creators.`);
+  return `<div class="fit"><span>Jobs: <b>${c("jobs")}</b></span><span>Pains: <b>${c("pains")}</b> ↔ Pain Relievers: <b>${c("relievers")}</b></span><span>Gains: <b>${c("gains")}</b> ↔ Gain Creators: <b>${c("creators")}</b></span><span>Produkte: <b>${c("products")}</b></span></div>`+r.map(x=>`<div class="warn"><b>Fit-Check:</b> ${x}</div>`).join("");}
+function fVPC(){const foc=S.tpm.links.find(l=>l.focus);return `<div class="card"><h2>Value Proposition Canvas</h2>
+<div class="info">Rechts das <b>Kundenprofil</b> (aus Sicht des Kunden, ohne dein Produkt), links die <b>Value Map</b> (dein Angebot). Fit entsteht, wenn die Pain Relievers wichtige Pains lösen und die Gain Creators wichtige Gains erzeugen. Hypothesen kannst du mit „(?)“ markieren.</div>
+${fld("vpc.segment","Kundensegment","Ein bestimmtes Segment – idealerweise die Fokus-Anwendung aus dem TPM.",foc?items(foc.segment)[0]||"":"z. B. Betreiber von Produktionsanlagen")}
+${foc&&items(foc.segment)[0]&&!S.vpc.segment?`<button class="btn ghost small" id="takeseg" style="margin-top:6px">Segment aus TPM übernehmen</button>`:""}
+<div class="g2"><div><h3>Kundenprofil</h3>
+${fld("vpc.jobs","Customer Jobs","Was will oder muss der Kunde erledigen? Funktionale, soziale und emotionale Aufgaben. <i>Typischer Fehler:</i> eigene Produktfunktionen statt Kundenaufgaben.","Anlage sicher und verfügbar betreiben\nAuflagen erfüllen","textarea")}
+${fld("vpc.pains","Pains","Was ärgert, behindert oder gefährdet den Kunden bei seinen Jobs? Probleme, Risiken, Kosten. <i>Typischer Fehler:</i> Aufgaben wie „Sensor einstellen“ – das ist ein Job; der Pain ist „Einstellen ist aufwendig / fehleranfällig“.","Fehlalarme\nAusfallzeit kostet Geld","textarea")}
+${fld("vpc.gains","Gains","Welche Ergebnisse und Vorteile wünscht oder erwartet der Kunde? <i>Typischer Fehler:</i> Eigenschaften deines Produkts eintragen – die gehören in Gain Creators.","Probleme erkannt, bevor sie entstehen\nWartung planbar statt Notfall","textarea")}</div>
+<div><h3>Value Map</h3>
+${fld("vpc.products","Produkte & Dienstleistungen","Was bietest du konkret an – Hardware, Software, Service? Nur auflisten, noch keinen Nutzen.","Sensor\nService-Abo","textarea")}
+${fld("vpc.relievers","Pain Relievers","Wie lindert dein Angebot einen bestimmten Pain? Am besten jeweils auf einen Pain beziehen.","Sensorfusion senkt Fehlalarme","textarea")}
+${fld("vpc.creators","Gain Creators","Wie erzeugt dein Angebot einen bestimmten Gain?","Frühwarnung mit Ursache","textarea")}</div></div>
+<div id="fit"></div></div>${preview("vpc")}`;}
+
+function epmCheck(){const A=S.epm.actors,w=[];const things=/^(sensor(en)?|daten|messergebnis(se)?|virtueller sensor|mensch)$/i;
+  A.forEach(a=>{ if(things.test(a.name.trim())) w.push(`„${esc(a.name)}“ ist eher ein Ding oder eine Rolle als ein Akteur. Akteure sind Organisationen, Institutionen, Gemeinschaften oder Personen (z. B. Sensorlieferant, Betreiber, Feuerwehr).`);});
+  if(!A.some(a=>a.user)) w.push("Kein Akteur ist als Nutzer markiert. Der Nutzer (Endkunde) steht im Uhrzeigersinn am Ende.");
+  const ui=A.findIndex(a=>a.user); if(ui>=0&&ui!==A.length-1) w.push("Der Nutzer steht nicht am Ende. Akteure werden im Uhrzeigersinn in Richtung Endnutzer angeordnet – mit ↑↓ verschieben.");
+  if(A.length>12) w.push("Mehr als 12 Akteure werden auf dem Blatt sehr eng.");
+  return w.map(x=>`<div class="warn"><b>Hinweis:</b> ${x}</div>`).join("");}
+function fEPM(){const e=S.epm;return `<div class="card"><h2>Ecosystem Pie Model</h2>
+<div class="info">Im Kreis stehen die <b>Akteure</b> auf der Angebotsseite, die gemeinsam das <b>Ökosystem-Wertversprechen</b> in der Mitte liefern – im Uhrzeigersinn in Richtung Endnutzer. Für jeden Akteur füllst du die Ringe von außen nach innen: Ressourcen → Aktivitäten → Wertschöpfung → Value Capture → Risiko (Ampel). Wer ist Orchestrator? Wo ist das Risiko rot?</div>
+<div class="g2">${fld("epm.segment","Marktsegment","Für welches Segment gilt dieses Pie Model?","Marktsegment #1")}<div></div></div>
+${fld("epm.vp","Ökosystem Value Proposition","Was liefert das Ökosystem gemeinsam dem Nutzer? Ein bis drei Sätze.","","textarea")}
+<h3>Akteure (im Uhrzeigersinn, Nutzer zuletzt)</h3>
+${e.actors.map((a,i)=>`<details class="actor" ${a.name?"":"open"}><summary><span class="amp" style="background:${AMP[a.amp]}"></span><b>${i+1}. ${esc(a.name||"(ohne Namen)")}</b><span class="help" style="margin:0">Abh. ${a.abh}${a.user?" · Nutzer":""}</span>
+<span style="flex:1"></span><button class="btn ghost small" data-up="${i}" ${i===0?"disabled":""}>↑</button><button class="btn ghost small" data-down="${i}" ${i===e.actors.length-1?"disabled":""}>↓</button><button class="del" data-delactor="${i}" title="Entfernen">×</button></summary>
+<div class="g4">${fld(`epm.actors.${i}.name`,"Akteur","Organisation, Institution, Gemeinschaft oder Person.","z. B. Sensorlieferanten")}
+<div><label>Abhängigkeit</label><p class="help">wirtschaftl. vom Wertversprechen</p><select data-b="epm.actors.${i}.abh" data-rr>${["L","M","H"].map(x=>`<option ${a.abh===x?"selected":""}>${x}</option>`).join("")}</select></div>
+<div><label>Risiko-Ampel</label><p class="help">Bereitschaft/Fähigkeit beizutragen</p><select data-b="epm.actors.${i}.amp" data-rr>${["grün","gelb","rot"].map(x=>`<option ${a.amp===x?"selected":""}>${x}</option>`).join("")}</select></div>
+<div><label>&nbsp;</label><p class="help">&nbsp;</p><label class="chk"><input type="checkbox" data-user="${i}" ${a.user?"checked":""}> Nutzer / Endkunde</label></div></div>
+<div class="g2"><div>${fld(`epm.actors.${i}.res`,"Ressourcen","Was hat der Akteur, das er einbringen kann?","","textarea",'style="min-height:56px"')}${fld(`epm.actors.${i}.act`,"Aktivitäten","Was tut er, um aus Ressourcen Mehrwert zu machen?","","textarea",'style="min-height:56px"')}${fld(`epm.actors.${i}.ws`,"Wertschöpfung","Sein einzigartiger Beitrag zum Ökosystem.","","textarea",'style="min-height:56px"')}</div>
+<div>${fld(`epm.actors.${i}.vc`,"Value Capture","Was bekommt er dafür – Geld, Daten, Zugang, Bindung?","","textarea",'style="min-height:56px"')}${fld(`epm.actors.${i}.risk`,"Risiko","Warum könnte er nicht mitmachen wollen oder können?","","textarea",'style="min-height:56px"')}</div></div></details>`).join("")}
+<div class="row" style="margin-top:10px"><button class="btn ghost small" id="addactor">+ Akteur</button></div>
+<div id="epmwarn"></div>
+${fld("epm.insights","Erkenntnisse (optional)","Ein Punkt pro Zeile. Erscheint rechts unten auf dem Blatt.","","textarea")}</div>${preview("epm")}`;}
+
+/* ===================== Markdown ===================== */
+const li=t=>items(t).map(x=>`- ${x}`).join("\n")||"–";
+function mdSheet(k){const L=[];
+  if(k==="tpm"){const t=S.tpm; L.push(`## ${SHEETS.tpm}`,"",`**Technologie:** ${t.name||"–"}`,"","**Technologische Spezifikationen:**","",li(t.specs),"","| # | Produktidee | Eigenschaft | Marktsegment | Kundenbedürfnis | Fokus |","|---|---|---|---|---|---|");
+    t.links.forEach((l,i)=>L.push(`| ${i+1} | ${mdc(l.idea)} | ${mdc(items(l.props).join("; "))} | ${mdc(items(l.segment).join("; "))} | ${mdc(items(l.need).join("; "))} | ${l.focus?"★":""} |`)); L.push("");}
+  if(k==="vpc"){const v=S.vpc; L.push(`## ${SHEETS.vpc}`,"",`**Kundensegment:** ${v.segment||"–"}`,"","### Kundenprofil","","**Customer Jobs**","",li(v.jobs),"","**Pains**","",li(v.pains),"","**Gains**","",li(v.gains),"","### Value Map","","**Produkte & Dienstleistungen**","",li(v.products),"","**Pain Relievers**","",li(v.relievers),"","**Gain Creators**","",li(v.creators),"");}
+  if(k==="epm"){const e=S.epm; L.push(`## ${SHEETS.epm}`,"",`**Marktsegment:** ${e.segment||"–"}`,"",`**Ökosystem Value Proposition:** ${e.vp||"–"}`,"","| # | Akteur | Abh. | Ressourcen | Aktivitäten | Wertschöpfung | Value Capture | Risiko | Ampel |","|---|---|---|---|---|---|---|---|---|");
+    e.actors.forEach((a,i)=>L.push(`| ${i+1} | ${mdc(a.name)}${a.user?" (Nutzer)":""} | ${a.abh} | ${mdc(a.res)} | ${mdc(a.act)} | ${mdc(a.ws)} | ${mdc(a.vc)} | ${mdc(a.risk)} | ${{rot:"🔴 rot",gelb:"🟡 gelb",grün:"🟢 grün"}[a.amp]||""} |`));
+    L.push(""); if(items(e.insights).length) L.push("**Erkenntnisse**","",li(e.insights),"");}
+  return L.join("\n");}
+function buildMd(keys){const m=S.meta;const L=[`# ${m.project||"Arbeitsblätter"}${keys.length===1?" – "+SHEETS[keys[0]]:""}`,"",[m.version?`Version ${m.version}`:"",m.author,m.date?`Stand ${fd(m.date)}`:"",m.context].filter(Boolean).join(" · "),""];
+  keys.forEach(k=>L.push(mdSheet(k)));
+  L.push("---","","*Arbeitsblätter nach Vorlage Prof. Dr. Stefanie Bröring (RUB, Chair for Entrepreneurship and innovative business models). Erstellt mit den CIM-Tools.*","");
+  const data=keys.length===3?S:{v:1,partial:keys,meta:S.meta,...Object.fromEntries(keys.map(k=>[k,S[k]]))};
+  L.push(`<!-- broering-sheets-data:${b64e(JSON.stringify({...data,tab:keys.length===1?keys[0]:"projekt"}))} -->`);
+  return L.join("\n");}
+
+/* ===================== Export / Dateien ===================== */
+let DL=null;
+async function getDL(){if(DL!==null)return DL;try{DL=(window.claude&&window.claude.use)?await window.claude.use("downloads"):false;}catch(e){DL=false;}return DL;}
+async function saveBlob(name,blob){const dl=await getDL();
+  if(dl){try{await dl.save({filename:name,data:blob});return true;}catch(e){ if(blob.type.startsWith("text")||blob.type.includes("json")||blob.type.includes("svg")){try{await dl.save({filename:name,data:await blob.text()});return true;}catch(e2){}} return false;}}
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();return true;}catch(e){return false;}}
+const slug=s=>String(s||"arbeitsblatt").toLowerCase().replace(/[äöüß]/g,c=>({ä:"ae",ö:"oe",ü:"ue",ß:"ss"}[c])).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,50)||"arbeitsblatt";
+const base=k=>`${slug(S.meta.project)}_${{tpm:"tpm",vpc:"value-proposition-canvas",epm:"ecosystem-pie-model",all:"arbeitsblaetter"}[k]}${S.meta.version?"_v"+slug(S.meta.version):""}`;
+function svgToPng(svg,scale=2){return new Promise((res,rej)=>{const img=new Image();const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+  img.onload=()=>{try{const c=document.createElement("canvas");c.width=1190*scale;c.height=842*scale;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);c.toBlob(b=>b?res(b):rej(new Error("png")),"image/png");}catch(e){rej(e);}};
+  img.onerror=()=>rej(new Error("svg"));img.src=url;});}
+async function doExport(k,fmt,toastId){const t=document.getElementById(toastId)||document.getElementById("gtoast");let ok=false;
+  try{
+    if(fmt==="svg") ok=await saveBlob(base(k)+".svg",new Blob([SVG[k]()],{type:"image/svg+xml"}));
+    if(fmt==="png") ok=await saveBlob(base(k)+".png",await svgToPng(SVG[k]()));
+    if(fmt==="md") ok=await saveBlob(base(k)+".md",new Blob([buildMd(k==="all"?["tpm","vpc","epm"]:[k])],{type:"text/markdown"}));
+    if(fmt==="json"){const d=k==="all"?S:{v:1,partial:[k],meta:S.meta,[k]:S[k]};ok=await saveBlob(base(k)+".json",new Blob([JSON.stringify(d,null,1)],{type:"application/json"}));}
+  }catch(e){ok=false;}
+  if(t){t.textContent=ok?"Gespeichert ✓":"Export nicht möglich.";setTimeout(()=>t.textContent="",3500);}}
+function fExport(){return `<div class="card"><h2>Alles exportieren</h2><p class="help">Ein Markdown-Dokument mit allen drei Arbeitsblättern als Tabellen bzw. Listen. Die Eingaben stecken unsichtbar im Dokument – mit „Laden“ kannst du später daran weiterarbeiten.</p>
+<div class="exp"><button class="btn small" data-exp="all|md">Alle Blätter als .md</button><button class="btn ghost small" data-exp="all|json">Alle Blätter als .json</button><button class="btn ghost small" id="copymd">Markdown kopieren</button><span class="toast" id="t-all"></span></div>
+<pre id="md">${esc(buildMd(["tpm","vpc","epm"]))}</pre></div>
+<div class="card"><h2>Formate</h2><p class="help" style="margin:0"><b>.md</b> – lesbar in GitHub, Obsidian, Notion; lässt sich wieder laden. <b>.json</b> – reine Projektdatei zum Laden. <b>.svg</b> – Vektorgrafik, editierbar in PowerPoint (Grafik einfügen → in Form konvertieren), Inkscape oder Illustrator. <b>.png</b> – Bild in doppelter Auflösung für Präsentationen und Poster. Für Value Proposition Canvas und Ecosystem Pie Model gibt es kein offenes Standard-Austauschformat; Strategyzer und Whiteboard-Tools nutzen eigene, geschlossene Formate.</p></div>`;}
+function setupExport(){const b=document.getElementById("copymd");if(b)b.onclick=async()=>{const t=document.getElementById("t-all");try{await navigator.clipboard.writeText(buildMd(["tpm","vpc","epm"]));t.textContent="Kopiert ✓";}catch(e){const r=document.createRange();r.selectNodeContents(document.getElementById("md"));const s=getSelection();s.removeAllRanges();s.addRange(r);t.textContent="Markiert – Strg/Cmd+C";}};}
+
+/* ===================== Laden ===================== */
+function loadText(txt,name){
+  const m=txt.match(/broering-sheets-data:([A-Za-z0-9+\/=]+)/);
+  const d=m?JSON.parse(b64d(m[1])):JSON.parse(txt);
+  if(d.partial){ d.partial.forEach(k=>{ if(d[k]) S[k]=normalize({[k]:d[k]})[k]; }); if(d.meta&&!S.meta.project) S.meta={...S.meta,...d.meta}; S.tab=d.partial[0]; flash(`${d.partial.map(k=>SHEETS[k]).join(", ")} geladen ✓ – die anderen Blätter bleiben unverändert`);}
+  else { S=normalize(d); flash("Alle Blätter geladen ✓"); }
+  save(); render();
+}
+document.getElementById("loadfile").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{loadText(String(r.result),f.name);}catch(err){flash("Datei nicht erkannt – sie stammt nicht aus diesem Tool.");}};r.readAsText(f);e.target.value="";});
+function flash(t){const el=document.getElementById("gtoast");el.textContent=t;clearTimeout(flash._t);flash._t=setTimeout(()=>el.textContent="",4500);}
+function askConfirm(msg,fn){window._cf=fn;document.getElementById("confirm").innerHTML=`<div class="modal row"><span style="flex:1">${esc(msg)}</span><button class="btn small" style="background:#c0392b;border-color:#c0392b" id="cy">Ja</button><button class="btn ghost small" id="cn">Abbrechen</button></div>`;}
+
+/* ===================== Events ===================== */
+document.addEventListener("input",e=>{const el=e.target;
+  if(el.dataset.b){ setPath(S,el.dataset.b,el.value); save();
+    if(el.dataset.rr!==undefined){render();return;}
+    renderPreview();
+    const sum=el.closest("details")?.querySelector("summary b"); if(sum&&/\.name$/.test(el.dataset.b)){const i=+el.dataset.b.split(".")[2];sum.textContent=`${i+1}. ${el.value||"(ohne Namen)"}`;}
+  }});
+document.addEventListener("change",e=>{const el=e.target;
+  if(el.dataset.focus!==undefined){S.tpm.links.forEach((l,i)=>l.focus=i===+el.dataset.focus);save();render();}
+  if(el.dataset.user!==undefined){S.epm.actors[+el.dataset.user].user=el.checked;save();render();}
+  if(el.tagName==="SELECT"&&el.dataset.b){setPath(S,el.dataset.b,el.value);save();render();}
+});
+document.addEventListener("click",async e=>{const t=e.target.closest("button,[data-tab]");if(!t)return;const ds=t.dataset,id=t.id;
+  if(ds.tab){S.tab=ds.tab;save();render();window.scrollTo&&window.scrollTo(0,0);return;}
+  if(ds.exp){e.preventDefault();const [k,f]=ds.exp.split("|");doExport(k,f,"t-"+k);return;}
+  if(ds.up!==undefined||ds.down!==undefined){e.preventDefault();const i=+(ds.up??ds.down),j=ds.up!==undefined?i-1:i+1;const A=S.epm.actors;[A[i],A[j]]=[A[j],A[i]];save();render();return;}
+  if(ds.delactor!==undefined){e.preventDefault();if(S.epm.actors.length>1){S.epm.actors.splice(+ds.delactor,1);save();render();}return;}
+  if(ds.dellink!==undefined){S.tpm.links.splice(+ds.dellink,1);save();render();return;}
+  if(id==="addlink"){if(S.tpm.links.length<6)S.tpm.links.push(blankLink());save();render();return;}
+  if(id==="addactor"){const A=S.epm.actors;const ui=A.findIndex(a=>a.user);const n=blankActor("");if(ui>=0)A.splice(ui,0,n);else A.push(n);save();render();return;}
+  if(id==="takeseg"){const f=S.tpm.links.find(l=>l.focus);S.vpc.segment=items(f.segment)[0]||"";save();render();return;}
+  if(id==="savejson"){doExport("all","json","gtoast");return;}
+  if(id==="savemd"){doExport("all","md","gtoast");return;}
+  if(id==="newp"){askConfirm("Alle Eingaben löschen und neu beginnen? Vorher ggf. speichern.",()=>{S=fresh();});return;}
+  if(id==="cy"){document.getElementById("confirm").innerHTML="";window._cf&&window._cf();save();render();return;}
+  if(id==="cn"){document.getElementById("confirm").innerHTML="";return;}
+});
+
+render();
+</script>
+</body>
+</html>

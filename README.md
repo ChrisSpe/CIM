@@ -11,7 +11,8 @@ Sammlung eigener Tools und Unterlagen aus Weiterbildungen und Projekten.
 │   ├── _vorlage-tool/        Vorlage für neue Tools (kopieren & umbenennen)
 │   └── tools/
 │       ├── stage-gate-assistent/
-│       └── agile-stage-gate-planer/
+│       ├── agile-stage-gate-planer/
+│       └── broering-arbeitsblaetter/
 └── README.md
 ```
 

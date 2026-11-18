@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stage-Gate-Assistent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f5f1; --card:#ffffff; --ink:#1d1f22; --muted:#6b6f76; --line:#e2e0da;
+    --accent:#1f5f8b; --accent-soft:#e6eff6; --go:#2e7d4f; --hold:#b7791f; --kill:#b23b3b; --recycle:#6b4fa0;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#16181b; --card:#1f2226; --ink:#ececec; --muted:#9aa0a8; --line:#33373d; --accent:#6aa9d6; --accent-soft:#1f3242; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+  .wrap{max-width:900px;margin:0 auto;padding:28px 18px 60px}
+  header h1{font-size:24px;margin:0 0 4px;font-weight:600}
+  header p{margin:0;color:var(--muted)}
+  .steps{display:flex;gap:6px;flex-wrap:wrap;margin:22px 0 16px}
+  .steps button{border:1px solid var(--line);background:var(--card);color:var(--muted);padding:6px 12px;border-radius:20px;font:inherit;font-size:13px;cursor:pointer}
+  .steps button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .steps button.done{color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:16px}
+  .card h2{font-size:18px;margin:0 0 4px;font-weight:600}
+  .card .hint{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+  label{display:block;font-weight:500;font-size:13.5px;margin:12px 0 4px}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);font:inherit}
+  select option{color:#000}
+  textarea{min-height:70px;resize:vertical}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 16px}
+  @media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:500;color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.03em}
+  td input,td select{padding:6px 8px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg label{margin:0;padding:5px 10px;font-weight:400;cursor:pointer;font-size:13px;border-right:1px solid var(--line)}
+  .seg label:last-child{border-right:0}
+  .seg input{display:none}
+  .seg input:checked+span{font-weight:600}
+  .seg label:has(input:checked){background:var(--accent-soft)}
+  .stageinfo{background:var(--accent-soft);border-radius:8px;padding:12px 14px;font-size:14px;margin-top:12px}
+  .verdict{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:10px;border:1px solid var(--line);margin:8px 0 6px}
+  .verdict .big{font-size:22px;font-weight:600}
+  .verdict .score{font-family:"IBM Plex Mono",monospace;color:var(--muted)}
+  .nav{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+  .btn{border:1px solid var(--accent);background:var(--accent);color:#fff;padding:9px 16px;border-radius:8px;font:inherit;font-weight:500;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--accent)}
+  .btn:disabled{opacity:.4;cursor:default}
+  pre{white-space:pre-wrap;font:13px/1.5 "IBM Plex Mono",monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;max-height:520px;overflow:auto}
+  .row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .toast{color:var(--go);font-size:13.5px;align-self:center}
+  .small{font-size:12.5px;color:var(--muted)}
+  .addrow{margin-top:8px;font-size:13px;padding:5px 10px}
+  .del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Stage-Gate-Assistent</h1>
+    <p>Nach Cooper (CIM Modul 1, Tag 3): Infos zum Gate erfassen, bewerten, entscheiden – und als Markdown-Gate-Protokoll ausgeben.</p>
+  </header>
+
+  <div class="steps" id="steps"></div>
+  <div id="view"></div>
+</div>
+
+<script>
+/* ---------- Inhalte ---------- */
+const GATES = {
+  g1:{name:"Gate 1 – Ideen-Screening", stageBefore:"Discovery (Ideengenerierung)", stageNext:"Stage 1 – Scoping",
+      info:"Erste, „weiche“ Prüfung: Passt die Idee strategisch und lohnt es sich, Zeit in eine Vorabklärung zu stecken? Wenig Ressourcen, wenig Daten.",
+      deliv:[["idee","Ideenbeschreibung","Was ist die Idee in 2–3 Sätzen?"],["problem","Kundenproblem / Bedürfnis","Welches Problem löst sie, für wen?"],["fit","Strategischer Bezug","Zu welchem Ziel / Geschäftsfeld passt sie?"]]},
+  g2:{name:"Gate 2 – Second Screen", stageBefore:"Stage 1 – Scoping", stageNext:"Stage 2 – Business Case",
+      info:"Nach der schnellen Vorabklärung: Reichen Markt- und Technikeinschätzung, um in einen detaillierten Business Case zu investieren?",
+      deliv:[["markt","Vorläufige Marktanalyse","Marktgröße, Zielgruppe, Wettbewerb (grob)"],["technik","Vorläufige technische Bewertung","Machbarkeit, größte technische Risiken"],["finanzen","Grobe Finanzabschätzung","Größenordnung Aufwand / Nutzen"],["recht","Rechtliche / regulatorische Punkte","Patente, Normen, Zulassung"]]},
+  g3:{name:"Gate 3 – Go to Development", stageBefore:"Stage 2 – Business Case", stageNext:"Stage 3 – Entwicklung",
+      info:"Das kritische Gate vor dem großen Investment: Produktdefinition, Begründung und Projektplan müssen stehen.",
+      deliv:[["definition","Produktdefinition","Zielmarkt, Konzept, Nutzenversprechen, Kernanforderungen"],["vor","Voice of Customer","Was haben Kunden gesagt? Wie viele Gespräche?"],["bc","Business Case","Umsatz, Kosten, Amortisation, NPV/ROI"],["plan","Projektplan & Ressourcen","Budget, Team, Meilensteine bis Launch"],["risiken","Hauptrisiken","Technik, Markt, Organisation – mit Gegenmaßnahmen"]]},
+  g4:{name:"Gate 4 – Go to Testing", stageBefore:"Stage 3 – Entwicklung", stageNext:"Stage 4 – Test & Validierung",
+      info:"Prüft den Entwicklungsfortschritt: Ist das Produkt so weit, dass Feld-, Kunden- und Produktionstests sinnvoll sind?",
+      deliv:[["prototyp","Stand Prototyp / Entwicklung","Was ist fertig, was fehlt noch?"],["feedback","Kundenfeedback zum Prototyp","Ergebnisse früher Tests"],["bcupd","Aktualisierter Business Case","Was hat sich gegenüber Gate 3 geändert?"],["testplan","Testplan","Feldtests, Labor, Pilotkunden, Produktion"]]},
+  g5:{name:"Gate 5 – Go to Launch", stageBefore:"Stage 4 – Test & Validierung", stageNext:"Stage 5 – Launch",
+      info:"Letzte Freigabe vor Markteinführung: Tests bestanden, Produktion und Vermarktung bereit.",
+      deliv:[["tests","Testergebnisse","Feld-/Kundentests, Zertifizierung"],["mkt","Markteinführungsplan","Kanäle, Preis, Kommunikation, Vertriebsschulung"],["prod","Produktions- & Lieferplan","Kapazität, Lieferkette, Service"],["fin","Finale Finanzbewertung","Aktualisierter Business Case"]]},
+  plr:{name:"Post-Launch-Review", stageBefore:"Stage 5 – Launch", stageNext:"Regelbetrieb / Lifecycle",
+      info:"6–18 Monate nach Launch: Ergebnisse gegen Plan prüfen, Projekt abschließen, Lessons Learned sichern.",
+      deliv:[["ist","Ergebnisse vs. Plan","Umsatz, Marge, Marktanteil, Termine, Budget"],["kunde","Kundenzufriedenheit","Feedback, Reklamationen"],["lessons","Lessons Learned","Was lief gut, was nicht, was ändern wir im Prozess?"]]}
+};
+const MUST = [
+  "Strategischer Fit (passt zu Unternehmensstrategie)",
+  "Technische Machbarkeit grundsätzlich gegeben",
+  "Kein K.-o.-Kriterium (Recht, Sicherheit, Umwelt, Regulatorik)",
+  "Chance-Risiko-Verhältnis vertretbar",
+  "Ressourcen grundsätzlich verfügbar"
+];
+const SHOULD = [
+  ["Strategische Bedeutung",20],
+  ["Produkt- / Wettbewerbsvorteil",20],
+  ["Marktattraktivität",15],
+  ["Synergien / Kernkompetenzen",15],
+  ["Technische Machbarkeit",15],
+  ["Finanzielle Attraktivität (Chance vs. Risiko)",15]
+];
+const STEPS = ["Projekt","Gate & Deliverables","Must-meet","Should-meet","Entscheidung","Dokument"];
+
+/* ---------- Zustand ---------- */
+const KEY="stagegate-tool-v1";
+function fresh(){
+  return {step:0, p:{name:"",lead:"",gatekeeper:"",date:new Date().toISOString().slice(0,10),desc:"",uTech:"mittel",uMarkt:"mittel",trl:""},
+    gate:"g1", deliv:{},
+    must:MUST.map(t=>({t,v:"",c:""})),
+    should:SHOULD.map(([t,w])=>({t,w,s:"",c:""})),
+    d:{decision:"",reason:"",next:"",actions:[{m:"",who:"",when:""}]}};
+}
+let S;
+try{ S=JSON.parse(localStorage.getItem(KEY))||fresh(); }catch(e){ S=fresh(); }
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+
+/* ---------- Helfer ---------- */
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mdc=s=>String(s??"").replace(/\|/g,"\\|").replace(/\n+/g,"<br>");
+function score(){
+  let sw=0,sum=0,filled=0;
+  S.should.forEach(x=>{const w=+x.w||0; if(x.s!==""){sw+=w;sum+=w*(+x.s);filled++;}});
+  if(!filled||!sw) return null;
+  return Math.round(sum/(sw*5)*100);
+}
+function suggestion(){
+  const isPlr=S.gate==="plr";
+  const no=S.must.filter(m=>m.v==="nein"), open=S.must.filter(m=>m.v===""||m.v==="offen");
+  const sc=score();
+  if(isPlr){
+    if(sc===null) return {d:"–",why:"Noch keine Bewertung."};
+    if(sc>=70) return {d:"Abschließen",why:`Score ${sc} %: Ziele weitgehend erreicht.`};
+    if(sc>=50) return {d:"Nachsteuern",why:`Score ${sc} %: Teilziele verfehlt, Maßnahmen nötig.`};
+    return {d:"Einstellen prüfen",why:`Score ${sc} %: deutlich unter Plan.`};
+  }
+  if(no.length) return {d:"Kill",why:`${no.length} Must-meet-Kriterium nicht erfüllt. Recycle nur, wenn behebbar.`};
+  if(open.length) return {d:"Hold",why:`${open.length} Must-meet-Kriterium noch offen.`};
+  if(sc===null) return {d:"–",why:"Must-meet erfüllt, Should-meet noch nicht bewertet."};
+  if(sc>=70) return {d:"Go",why:`Alle Must-meet erfüllt, Score ${sc} % (≥ 70 %).`};
+  if(sc>=50) return {d:"Recycle / Hold",why:`Alle Must-meet erfüllt, Score ${sc} % (50–69 %): nacharbeiten oder zurückstellen.`};
+  return {d:"Kill",why:`Score ${sc} % (< 50 %).`};
+}
+function processHint(){
+  const t=S.p.uTech, m=S.p.uMarkt;
+  if(t==="hoch"&&m==="hoch") return "Technik- und Marktunsicherheit hoch → Hybrid (Agile-Stage-Gate) mit Effectuation-Logik.";
+  if(m==="hoch") return "Hohe Marktunsicherheit → Design Thinking / Lean Startup vorschalten bzw. integrieren.";
+  if(t==="hoch") return "Hohe Technikunsicherheit → Stage-Gate mit TRL-Gates.";
+  if(t==="mittel"||m==="mittel") return "Mittlere Unsicherheit → Next-Generation Stage-Gate (adaptiv, agil, accelerated) prüfen.";
+  return "Geringe Unsicherheit → klassisches Stage-Gate passt.";
+}
+const decisionOptions=()=>S.gate==="plr"?["Abschließen","Nachsteuern","Einstellen"]:["Go","Kill","Hold","Recycle"];
+const colorFor=d=>/Go|Abschl/.test(d)?"var(--go)":/Kill|Einstell/.test(d)?"var(--kill)":/Recycle/.test(d)?"var(--recycle)":/Hold|Nachst/.test(d)?"var(--hold)":"var(--muted)";
+
+/* ---------- Markdown ---------- */
+function buildMd(){
+  const g=GATES[S.gate], p=S.p, sc=score(), sg=suggestion();
+  const L=[];
+  L.push(`# Gate-Protokoll: ${p.name||"Projekt"} – ${g.name}`,"");
+  L.push(`| | |`,`|---|---|`);
+  L.push(`| **Projekt** | ${mdc(p.name)||"–"} |`,`| **Projektleitung** | ${mdc(p.lead)||"–"} |`,`| **Gatekeeper** | ${mdc(p.gatekeeper)||"–"} |`,`| **Datum** | ${p.date||"–"} |`,`| **Gate** | ${g.name} |`,`| **Abgeschlossene Stage** | ${g.stageBefore} |`,`| **Nächste Stage** | ${g.stageNext} |`);
+  if(p.trl) L.push(`| **TRL** | ${p.trl} |`);
+  L.push("");
+  L.push(`## Entscheidung: **${S.d.decision||"offen"}**`,"");
+  if(S.d.reason) L.push(S.d.reason,"");
+  L.push(`*Vorschlag des Bewertungsmodells: ${sg.d} – ${sg.why}*`,"");
+  if(p.desc){L.push("## Kurzbeschreibung","",p.desc,"");}
+  L.push("## Prozesswahl","",`Unsicherheit Technik: **${p.uTech}** · Markt: **${p.uMarkt}**`,"",`> ${processHint()}`,"");
+  L.push(`## Deliverables (${g.stageBefore})`,"");
+  g.deliv.forEach(([k,t])=>{L.push(`### ${t}`,"",(S.deliv[S.gate]?.[k]||"*nicht ausgefüllt*").trim(),"");});
+  if(S.gate!=="plr"){
+    L.push("## Must-meet-Kriterien (K.-o.)","","| Kriterium | Erfüllt | Kommentar |","|---|---|---|");
+    S.must.forEach(m=>L.push(`| ${mdc(m.t)} | ${m.v==="ja"?"✅ ja":m.v==="nein"?"❌ nein":"⏳ offen"} | ${mdc(m.c)} |`));
+    L.push("");
+  }
+  L.push("## Should-meet-Kriterien (Scoring 1–5)","","| Kriterium | Gewicht | Score | Gewichtet | Begründung |","|---|---:|---:|---:|---|");
+  S.should.forEach(x=>{const ws=x.s===""?"–":((+x.w)*(+x.s)/100).toFixed(2);L.push(`| ${mdc(x.t)} | ${x.w} % | ${x.s||"–"} | ${ws} | ${mdc(x.c)} |`);});
+  L.push("",`**Gesamtscore: ${sc===null?"–":sc+" %"}** (gewichteter Mittelwert, 100 % = alle Kriterien mit 5 bewertet; Schwellen: ≥ 70 % Go, 50–69 % Recycle/Hold, < 50 % Kill)`,"");
+  const acts=S.d.actions.filter(a=>a.m.trim());
+  L.push("## Auflagen & Maßnahmen","");
+  if(acts.length){L.push("| Maßnahme | Verantwortlich | Termin |","|---|---|---|");acts.forEach(a=>L.push(`| ${mdc(a.m)} | ${mdc(a.who)||"–"} | ${a.when||"–"} |`));}
+  else L.push("Keine.");
+  L.push("");
+  L.push("## Nächster Termin","",S.d.next?`Nächstes Gate / Review: **${S.d.next}**`:"Noch nicht festgelegt.","");
+  L.push("---","",`*Erstellt mit dem Stage-Gate-Assistenten (Cooper 1990/2008). Gatekeeper entscheiden mit Ressourcenhoheit: Go, Kill, Hold oder Recycle.*`);
+  return L.join("\n");
+}
+
+/* ---------- Rendering ---------- */
+const view=document.getElementById("view");
+function renderSteps(){
+  document.getElementById("steps").innerHTML=STEPS.map((s,i)=>`<button class="${i===S.step?"active":i<S.step?"done":""}" data-go="${i}">${i+1}. ${s}</button>`).join("");
+}
+function seg(name,val,opts){
+  return `<span class="seg">${opts.map(o=>`<label><input type="radio" name="${name}" value="${o[0]}" ${val===o[0]?"checked":""}><span>${o[1]}</span></label>`).join("")}</span>`;
+}
+function nav(){
+  return `<div class="nav"><button class="btn ghost" data-go="${S.step-1}" ${S.step===0?"disabled":""}>← Zurück</button>
+  ${S.step<STEPS.length-1?`<button class="btn" data-go="${S.step+1}">Weiter →</button>`:""}</div>`;
+}
+function render(){
+  renderSteps();
+  const g=GATES[S.gate]; let h="";
+  if(S.step===0){
+    const p=S.p;
+    h=`<div class="card"><h2>Projektdaten</h2><p class="hint">Grunddaten fürs Protokoll. Die Unsicherheit steuert die Prozessempfehlung.</p>
+    <div class="grid2">
+      <div><label>Projektname</label><input data-p="name" value="${esc(p.name)}" placeholder="z. B. Smart-Service – Pilotkunde"></div>
+      <div><label>Datum Gate-Meeting</label><input type="date" data-p="date" value="${esc(p.date)}"></div>
+      <div><label>Projektleitung</label><input data-p="lead" value="${esc(p.lead)}"></div>
+      <div><label>Gatekeeper</label><input data-p="gatekeeper" value="${esc(p.gatekeeper)}" placeholder="Namen, Komma-getrennt"></div>
+    </div>
+    <label>Kurzbeschreibung</label><textarea data-p="desc" placeholder="Worum geht's?">${esc(p.desc)}</textarea>
+    <div class="grid3">
+      <div><label>Unsicherheit Technik</label><select data-p="uTech">${["niedrig","mittel","hoch"].map(o=>`<option ${p.uTech===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div><label>Unsicherheit Markt</label><select data-p="uMarkt">${["niedrig","mittel","hoch"].map(o=>`<option ${p.uMarkt===o?"selected":""}>${o}</option>`).join("")}</select></div>
+      <div><label>TRL (optional)</label><select data-p="trl"><option value="">–</option>${[1,2,3,4,5,6,7,8,9].map(o=>`<option ${p.trl==o?"selected":""}>${o}</option>`).join("")}</select></div>
+    </div>
+    <div class="stageinfo" id="phint">${processHint()}</div></div>`;
+  }
+  if(S.step===1){
+    const d=S.deliv[S.gate]||{};
+    h=`<div class="card"><h2>Welches Gate?</h2>
+    <select id="gate">${Object.entries(GATES).map(([k,v])=>`<option value="${k}" ${S.gate===k?"selected":""}>${v.name}</option>`).join("")}</select>
+    <div class="stageinfo"><strong>${g.stageBefore} → ${g.name} → ${g.stageNext}</strong><br>${g.info}</div></div>
+    <div class="card"><h2>Deliverables</h2><p class="hint">Was liefert das Team aus der abgeschlossenen Stage? Stichpunkte reichen.</p>
+    ${g.deliv.map(([k,t,ph])=>`<label>${t}</label><textarea data-dl="${k}" placeholder="${esc(ph)}">${esc(d[k]||"")}</textarea>`).join("")}</div>`;
+  }
+  if(S.step===2){
+    h=S.gate==="plr"?`<div class="card"><h2>Must-meet</h2><p class="hint">Beim Post-Launch-Review entfallen die K.-o.-Kriterien. Weiter zur Bewertung.</p></div>`:
+    `<div class="card"><h2>Must-meet-Kriterien (K.-o.)</h2><p class="hint">Ein „Nein“ heißt Kill (oder Recycle, falls behebbar). „Offen“ führt zu Hold.</p>
+    <table><tr><th>Kriterium</th><th>Erfüllt?</th><th>Kommentar</th></tr>
+    ${S.must.map((m,i)=>`<tr><td><input data-mt="${i}" value="${esc(m.t)}"></td><td>${seg("m"+i,m.v,[["ja","Ja"],["nein","Nein"],["offen","Offen"]])}</td><td><input data-mc="${i}" value="${esc(m.c)}"></td></tr>`).join("")}
+    </table><button class="btn ghost addrow" id="addmust">+ Kriterium</button></div>`;
+  }
+  if(S.step===3){
+    const sw=S.should.reduce((a,x)=>a+(+x.w||0),0);
+    h=`<div class="card"><h2>Should-meet-Kriterien</h2><p class="hint">${S.gate==="plr"?"Bewerte, wie gut die Ziele erreicht wurden":"Scoring-Modell nach Cooper"}: 1 = sehr schwach, 5 = sehr stark. Gewichte anpassbar.</p>
+    <table><tr><th>Kriterium</th><th style="width:90px">Gewicht %</th><th style="width:90px">Score</th><th>Begründung</th><th></th></tr>
+    ${S.should.map((x,i)=>`<tr><td><input data-st="${i}" value="${esc(x.t)}"></td><td><input type="number" min="0" max="100" data-sw="${i}" value="${x.w}"></td>
+    <td><select data-ss="${i}"><option value="">–</option>${[1,2,3,4,5].map(n=>`<option ${x.s==n?"selected":""}>${n}</option>`).join("")}</select></td>
+    <td><input data-sc="${i}" value="${esc(x.c)}"></td><td><button class="del" data-sdel="${i}" title="Entfernen">×</button></td></tr>`).join("")}
+    </table><button class="btn ghost addrow" id="addshould">+ Kriterium</button>
+    <p class="small" id="wsum">Summe Gewichte: ${sw} %${sw!==100?" (wird automatisch normiert)":""} · Score aktuell: ${score()??"–"}${score()!==null?" %":""}</p></div>`;
+  }
+  if(S.step===4){
+    const sg=suggestion();
+    h=`<div class="card"><h2>Gate-Entscheidung</h2>
+    <div class="verdict"><div><div class="small">Vorschlag Bewertungsmodell</div><div class="big" style="color:${colorFor(sg.d)}">${sg.d}</div></div><div class="score">${sg.why}</div></div>
+    <p class="small">Der Vorschlag ist nur eine Stütze – entscheiden tun die Gatekeeper.</p>
+    <label>Entscheidung der Gatekeeper</label>${seg("dec",S.d.decision,decisionOptions().map(o=>[o,o]))}
+    <label>Begründung</label><textarea data-d="reason">${esc(S.d.reason)}</textarea>
+    <label>Auflagen & Maßnahmen</label>
+    <table><tr><th>Maßnahme</th><th>Verantwortlich</th><th style="width:150px">Termin</th><th></th></tr>
+    ${S.d.actions.map((a,i)=>`<tr><td><input data-am="${i}" value="${esc(a.m)}"></td><td><input data-aw="${i}" value="${esc(a.who)}"></td><td><input type="date" data-at="${i}" value="${esc(a.when)}"></td><td><button class="del" data-adel="${i}">×</button></td></tr>`).join("")}
+    </table><button class="btn ghost addrow" id="addact">+ Maßnahme</button>
+    <label>Nächstes Gate / Review am</label><input type="date" data-d="next" value="${esc(S.d.next)}" style="max-width:220px"></div>`;
+  }
+  if(S.step===5){
+    h=`<div class="card"><h2>Gate-Protokoll (.md)</h2><p class="hint">Fertig. Herunterladen oder kopieren und z. B. in Obsidian, Notion oder Git ablegen.</p>
+    <div class="row-actions"><button class="btn" id="dl" style="display:none">.md herunterladen</button><button class="btn ghost" id="copy">In Zwischenablage kopieren</button><button class="btn ghost" id="reset">Neues Protokoll</button><span class="toast" id="toast"></span></div>
+    <pre id="md">${esc(buildMd())}</pre></div>`;
+  }
+  view.innerHTML=h+nav();
+  if(S.step===5) setupExport();
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-go]");
+  if(t&&!t.disabled){S.step=Math.max(0,Math.min(STEPS.length-1,+t.dataset.go));save();render();window.scrollTo(0,0);return;}
+  const id=e.target.id;
+  if(id==="addmust"){S.must.push({t:"",v:"",c:""});save();render();}
+  if(id==="addshould"){S.should.push({t:"",w:10,s:"",c:""});save();render();}
+  if(id==="addact"){S.d.actions.push({m:"",who:"",when:""});save();render();}
+  if(e.target.dataset.sdel!==undefined){S.should.splice(+e.target.dataset.sdel,1);save();render();}
+  if(e.target.dataset.adel!==undefined){S.d.actions.splice(+e.target.dataset.adel,1);if(!S.d.actions.length)S.d.actions.push({m:"",who:"",when:""});save();render();}
+  if(id==="reset"){showConfirm();}
+  if(id==="resetyes"){S=fresh();save();render();}
+  if(id==="resetno"){render();}
+});
+document.addEventListener("input",e=>{
+  const el=e.target, ds=el.dataset;
+  if(ds.p){S.p[ds.p]=el.value;const ph=document.getElementById("phint");if(ph)ph.textContent=processHint();}
+  if(ds.dl){(S.deliv[S.gate]=S.deliv[S.gate]||{})[ds.dl]=el.value;}
+  if(ds.mt!==undefined)S.must[+ds.mt].t=el.value;
+  if(ds.mc!==undefined)S.must[+ds.mc].c=el.value;
+  if(ds.st!==undefined)S.should[+ds.st].t=el.value;
+  if(ds.sw!==undefined)S.should[+ds.sw].w=el.value;
+  if(ds.ss!==undefined)S.should[+ds.ss].s=el.value;
+  if(ds.sc!==undefined)S.should[+ds.sc].c=el.value;
+  if(ds.d)S.d[ds.d]=el.value;
+  if(ds.am!==undefined)S.d.actions[+ds.am].m=el.value;
+  if(ds.aw!==undefined)S.d.actions[+ds.aw].who=el.value;
+  if(ds.at!==undefined)S.d.actions[+ds.at].when=el.value;
+  if(el.type==="radio"){
+    if(el.name==="dec")S.d.decision=el.value;
+    else if(el.name.startsWith("m"))S.must[+el.name.slice(1)].v=el.value;
+  }
+  if(el.id==="gate"){S.gate=el.value;S.d.decision="";save();render();return;}
+  if(ds.sw!==undefined||ds.ss!==undefined){
+    const w=document.getElementById("wsum");const sw=S.should.reduce((a,x)=>a+(+x.w||0),0);
+    if(w)w.textContent=`Summe Gewichte: ${sw} %${sw!==100?" (wird automatisch normiert)":""} · Score aktuell: ${score()??"–"}${score()!==null?" %":""}`;
+  }
+  save();
+});
+document.addEventListener("change",e=>{ if(e.target.tagName==="SELECT"||e.target.type==="radio") e.target.dispatchEvent(new Event("input",{bubbles:true})); },true);
+
+function showConfirm(){
+  const ra=document.querySelector(".row-actions");
+  ra.innerHTML=`<span>Alle Eingaben löschen?</span><button class="btn" id="resetyes" style="background:var(--kill);border-color:var(--kill)">Ja, löschen</button><button class="btn ghost" id="resetno">Abbrechen</button>`;
+}
+function fileName(){
+  const n=(S.p.name||"projekt").toLowerCase().replace(/[äöüß]/g,c=>({ä:"ae",ö:"oe",ü:"ue",ß:"ss"}[c])).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  return `gate-protokoll_${n}_${S.gate}_${S.p.date||"datum"}.md`;
+}
+async function setupExport(){
+  const md=buildMd(), toast=document.getElementById("toast");
+  document.getElementById("copy").onclick=async()=>{
+    try{await navigator.clipboard.writeText(md);toast.textContent="Kopiert ✓";}
+    catch(e){const r=document.createRange();r.selectNodeContents(document.getElementById("md"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast.textContent="Text markiert – mit Strg/Cmd+C kopieren";}
+  };
+  // Standalone (z. B. GitHub Pages oder lokal geöffnet): normaler Browser-Download
+  if(!window.claude||!window.claude.use){
+    const b=document.getElementById("dl"); if(!b) return;
+    b.style.display="";
+    b.onclick=()=>{
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob([md],{type:"text/markdown"}));
+      a.download=fileName(); document.body.appendChild(a); a.click(); a.remove();
+      toast.textContent="Gespeichert ✓";
+    };
+    return;
+  }
+  try{
+    const dl=await window.claude.use("downloads");
+    if(!dl) return;
+    const b=document.getElementById("dl"); if(!b) return;
+    b.style.display="";
+    b.onclick=async()=>{
+      try{await dl.save({filename:fileName(),data:new Blob([md],{type:"text/markdown"})});toast.textContent="Gespeichert ✓";}
+      catch(e){try{await dl.save({filename:fileName(),data:md});toast.textContent="Gespeichert ✓";}catch(e2){toast.textContent="Download abgebrochen – nutze „Kopieren“.";}}
+    };
+  }catch(e){}
+}
+render();
+</script>
+</body>
+</html>

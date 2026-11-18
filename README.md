@@ -10,7 +10,8 @@ Sammlung eigener Tools und Unterlagen aus Weiterbildungen und Projekten.
 │   ├── README.md             Übersicht aller CIM-Tools
 │   ├── _vorlage-tool/        Vorlage für neue Tools (kopieren & umbenennen)
 │   └── tools/
-│       └── stage-gate-assistent/
+│       ├── stage-gate-assistent/
+│       └── agile-stage-gate-planer/
 └── README.md
 ```
 

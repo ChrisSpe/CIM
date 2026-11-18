@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agile-Stage-Gate-Planer</title>
+<style>
+  .viz-root{
+    color-scheme:light;
+    --page:#f9f9f7; --surface-1:#fcfcfb; --card:#ffffff;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --series-1:#2a78d6; --series-2:#eb6834; --series-7:#6250d6;
+    --accent:#2a78d6; --accent-soft:#e8f0fa;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b; --neutral:#c3c2b7;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where(:not([data-theme="light"])) .viz-root{
+      color-scheme:dark;
+      --page:#0d0d0d; --surface-1:#1a1a19; --card:#1a1a19;
+      --text-primary:#f0efec; --text-secondary:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+      --series-1:#3987e5; --series-2:#d95926; --series-7:#9085e9;
+      --accent:#3987e5; --accent-soft:#1c2a3a; --neutral:#5a5955;
+    }
+  }
+  :root[data-theme="dark"] .viz-root{
+    color-scheme:dark;
+    --page:#0d0d0d; --surface-1:#1a1a19; --card:#1a1a19;
+    --text-primary:#f0efec; --text-secondary:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --series-1:#3987e5; --series-2:#d95926; --series-7:#9085e9;
+    --accent:#3987e5; --accent-soft:#1c2a3a; --neutral:#5a5955;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .viz-root{background:var(--page);color:var(--text-primary);min-height:100vh}
+  .wrap{max-width:1000px;margin:0 auto;padding:24px 18px 60px}
+  header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  header h1{font-size:23px;margin:0 0 2px;font-weight:600}
+  header p{margin:0;color:var(--text-secondary);font-size:14px}
+  .tools{display:flex;gap:6px;flex-wrap:wrap}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;margin:20px 0 14px;border-bottom:1px solid var(--border)}
+  .tabs button{border:0;background:none;color:var(--text-secondary);padding:9px 12px;font:inherit;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button.active{color:var(--text-primary);border-bottom-color:var(--accent);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px}
+  .card h2{font-size:17px;margin:0 0 4px;font-weight:600}
+  .card h3{font-size:15px;margin:14px 0 6px;font-weight:600}
+  .hint{color:var(--text-secondary);font-size:13.5px;margin:0 0 12px}
+  label{display:block;font-weight:500;font-size:13px;margin:10px 0 3px;color:var(--text-secondary)}
+  input,select,textarea{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--surface-1);color:var(--text-primary);font:inherit;font-size:14px}
+  textarea{min-height:60px;resize:vertical}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:0 14px}
+  @media(max-width:700px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:6px 5px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{font-weight:500;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+  td input,td select{padding:5px 7px}
+  .btn{border:1px solid var(--accent);background:var(--accent);color:#fff;padding:7px 13px;border-radius:7px;font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--accent)}
+  .btn.small{padding:4px 9px;font-size:13px}
+  .btn.danger{border-color:var(--critical);background:var(--critical)}
+  .del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:17px;line-height:1}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:2px 9px;border-radius:20px;border:1px solid var(--border);white-space:nowrap}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .sprint{border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px}
+  .sprint summary{cursor:pointer;display:flex;gap:10px;align-items:center;flex-wrap:wrap;list-style:none}
+  .sprint summary::-webkit-details-marker{display:none}
+  .sprint summary b{font-weight:600}
+  .muted{color:var(--muted)} .sec{color:var(--text-secondary)}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;flex-wrap:wrap}
+  .seg label{margin:0;padding:5px 10px;font-weight:400;cursor:pointer;font-size:13px;color:var(--text-primary);border-right:1px solid var(--border)}
+  .seg label:last-child{border-right:0}
+  .seg input{display:none}
+  .seg label:has(input:checked){background:var(--accent-soft);font-weight:600}
+  .verdict{display:flex;gap:16px;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin:8px 0}
+  .verdict .big{font-size:20px;font-weight:600}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  @media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .kpi .l{font-size:12.5px;color:var(--text-secondary)}
+  .kpi .v{font-size:26px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+  .kpi .s{font-size:12.5px;color:var(--muted)}
+  .chart{width:100%;height:auto;display:block}
+  .chart text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--text-secondary);margin:4px 0 8px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+  #tip{position:fixed;pointer-events:none;background:var(--card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.12);display:none;z-index:10;max-width:260px;white-space:pre-line}
+  pre{white-space:pre-wrap;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px;max-height:520px;overflow:auto}
+  .toast{color:var(--good);font-size:13.5px}
+  .empty{color:var(--muted);font-size:14px;padding:18px 0;text-align:center}
+  .modal{border:1px solid var(--critical);border-radius:10px;padding:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Agile-Stage-Gate-Planer</h1>
+      <p>Hybrid nach Cooper (2016): Gates bleiben Investitionsentscheidungen, in den Stages wird in Sprints gearbeitet.</p>
+    </div>
+    <div class="tools">
+      <button class="btn ghost small" id="saveJson">Projekt speichern (.json)</button>
+      <label class="btn ghost small" style="margin:0;color:var(--accent)">Projekt laden (.json/.md)<input type="file" id="loadJson" accept=".json,.md,application/json,text/markdown" style="display:none"></label>
+      <button class="btn ghost small" id="demo">Beispiel laden</button>
+      <button class="btn ghost small" id="newp">Neu</button>
+    </div>
+  </header>
+  <div id="confirm"></div>
+  <span class="toast" id="gtoast"></span>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="view"></main>
+</div>
+<div id="tip"></div>
+</div>
+
+<script>
+/* ================= Modell ================= */
+const TABS=[["projekt","1 · Projekt"],["plan","2 · Plan"],["hyp","3 · Hypothesen"],["sprints","4 · Sprints"],["gates","5 · Gates"],["auswertung","6 · Auswertung"],["export","7 · Export"]];
+const DECISIONS=["Go","Hold","Recycle","Pivot","Kill"];
+const DEC_COLOR={Go:"var(--good)",Hold:"var(--warning)",Recycle:"var(--serious)",Pivot:"var(--series-7)",Kill:"var(--critical)"};
+const H_STATUS=[["offen","offen","var(--neutral)"],["test","in Test","var(--warning)"],["ok","bestätigt","var(--good)"],["nok","verworfen","var(--critical)"]];
+const H_TYPES=["Kunde/Problem","Lösung/Wert","Markt","Technik","Wirtschaftlichkeit"];
+const MUST=["Strategischer Fit","Technische Machbarkeit grundsätzlich gegeben","Kein K.-o. (Recht, Sicherheit, Regulatorik)","Chance-Risiko-Verhältnis vertretbar"];
+const SHOULD=[["Kundennutzen nachgewiesen",25],["Marktattraktivität",20],["Wettbewerbsvorteil",15],["Technische Reife",20],["Wirtschaftlichkeit",20]];
+let uid=()=>Math.random().toString(36).slice(2,9);
+const today=()=>new Date().toISOString().slice(0,10);
+
+function freshProject(){
+  const st=[["Scoping",2,20,"Problem und Zielgruppe verstanden"],["Business Case",3,40,"Lösung und Geschäftsmodell validiert"],["Entwicklung",6,150,"Funktionsfähiges MVP"],["Test & Validierung",3,60,"Pilotkunden bestätigen Nutzen"],["Launch",2,50,"Markteinführung"]];
+  return {v:1,tab:"projekt",
+    p:{name:"",vision:"",po:"",team:"",gatekeeper:"",start:today(),sprintLen:2,budgetUnit:"T€",uTech:"mittel",uMarkt:"hoch"},
+    stages:st.map(([n,s,b,g])=>({id:uid(),name:n,sprints:s,budget:b,goal:g})),
+    must:MUST.slice(), should:SHOULD.map(([t,w])=>({t,w})),
+    hyps:[], sprints:[], gates:{}};
+}
+const KEY="agile-stage-gate-v1";
+let S; try{S=JSON.parse(localStorage.getItem(KEY))||freshProject();}catch(e){S=freshProject();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ================= Helfer ================= */
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mdc=s=>String(s??"").replace(/\|/g,"\\|").replace(/\n+/g,"<br>");
+const D=s=>{const d=new Date(s+"T00:00:00");return isNaN(d)?null:d;};
+const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const addDays=(s,n)=>{const d=D(s)||new Date();d.setDate(d.getDate()+n);return iso(d);};
+const fd=s=>{const d=D(s);return d?d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"}):"–";};
+const num=v=>{const n=parseFloat(String(v).replace(",","."));return isNaN(n)?0:n;};
+const fmtN=n=>(Math.round(n*10)/10).toLocaleString("de-DE");
+function getPath(o,p){return p.split(".").reduce((a,k)=>a==null?a:a[k],o);}
+function setPath(o,p,v){const ks=p.split(".");let a=o;for(let i=0;i<ks.length-1;i++){if(a[ks[i]]==null)a[ks[i]]={};a=a[ks[i]];}a[ks.at(-1)]=v;}
+const stageById=id=>S.stages.find(s=>s.id===id);
+const stageIdx=id=>S.stages.findIndex(s=>s.id===id);
+
+function planSchedule(){
+  let cur=S.p.start||today(); const len=num(S.p.sprintLen)||2;
+  return S.stages.map(s=>{const st=cur,en=addDays(cur,Math.round(num(s.sprints)*len*7));cur=en;return {id:s.id,start:st,end:en};});
+}
+function stageActual(id){
+  const sp=S.sprints.filter(x=>x.stage===id&&x.start);
+  if(!sp.length) return null;
+  return {start:sp.map(x=>x.start).sort()[0],end:sp.map(x=>x.end||x.start).sort().at(-1),n:sp.length,
+          budget:sp.reduce((a,x)=>a+num(x.budget),0)};
+}
+function gateOf(id){ if(!S.gates[id]) S.gates[id]={date:"",must:{},should:{},decision:"",released:"",reason:"",cond:""}; return S.gates[id]; }
+function currentStage(){ for(const s of S.stages){const g=S.gates[s.id]; if(!g||g.decision!=="Go") return s;} return S.stages.at(-1); }
+function gateScore(id){
+  const g=S.gates[id]; if(!g) return null; let sw=0,sum=0;
+  S.should.forEach((c,i)=>{const v=g.should[i]; if(v){sw+=num(c.w);sum+=num(c.w)*num(v);}});
+  return sw?Math.round(sum/(sw*5)*100):null;
+}
+function gateSuggestion(id){
+  const g=gateOf(id); const hs=S.hyps.filter(h=>h.stage===id&&h.crit);
+  const no=S.must.filter((_,i)=>g.must[i]==="nein").length, open=S.must.filter((_,i)=>!g.must[i]||g.must[i]==="offen").length;
+  const hNok=hs.filter(h=>h.status==="nok").length, hOpen=hs.filter(h=>h.status==="offen"||h.status==="test").length;
+  const sc=gateScore(id);
+  if(no) return {d:"Kill",why:`${no} Must-meet-${no===1?"Kriterium":"Kriterien"} nicht erfüllt.`};
+  if(hNok) return {d:"Pivot",why:`${hNok} kritische ${hNok===1?"Hypothese":"Hypothesen"} verworfen – Richtung ändern statt weiterbauen.`};
+  if(open) return {d:"Hold",why:`${open} Must-meet-${open===1?"Kriterium":"Kriterien"} noch offen.`};
+  if(hOpen) return {d:"Recycle",why:`${hOpen} kritische ${hOpen===1?"Hypothese":"Hypothesen"} noch nicht bestätigt – weitere Sprints in dieser Stage.`};
+  if(sc===null) return {d:"–",why:"Should-meet noch nicht bewertet."};
+  if(sc>=70) return {d:"Go",why:`Must-meet erfüllt, kritische Hypothesen bestätigt, Score ${sc} %.`};
+  if(sc>=50) return {d:"Recycle",why:`Score ${sc} % (50–69 %): nachschärfen.`};
+  return {d:"Kill",why:`Score ${sc} % (< 50 %).`};
+}
+function processHint(){
+  const t=S.p.uTech,m=S.p.uMarkt;
+  if(t==="hoch"&&m==="hoch") return "Technik und Markt hoch unsicher → Hybrid mit Effectuation-Logik: kurze Sprints, viele Hypothesentests, Gates eher als Lern-Meilensteine.";
+  if(m==="hoch") return "Hohe Marktunsicherheit → Lean-Startup-Elemente in die frühen Stages: Kundenhypothesen zuerst testen.";
+  if(t==="hoch") return "Hohe Technikunsicherheit → TRL-Gates ergänzen: technische Reife an jedem Gate prüfen.";
+  if(t==="niedrig"&&m==="niedrig") return "Geringe Unsicherheit → klassisches Stage-Gate würde reichen; Sprints vor allem in der Entwicklung.";
+  return "Mittlere Unsicherheit → Next-Generation Stage-Gate: adaptiv, agil, accelerated (überlappende Stages, wenige gute Gates).";
+}
+const decPill=d=>d?`<span class="pill"><span class="dot" style="background:${DEC_COLOR[d]||"var(--neutral)"}"></span>${esc(d)}</span>`:`<span class="pill muted">offen</span>`;
+const hStat=k=>H_STATUS.find(x=>x[0]===k)||H_STATUS[0];
+const opt=(arr,val)=>arr.map(o=>{const [v,l]=Array.isArray(o)?o:[o,o];return `<option value="${esc(v)}" ${String(val)===String(v)?"selected":""}>${esc(l)}</option>`;}).join("");
+const stageOpts=val=>S.stages.map((s,i)=>`<option value="${s.id}" ${val===s.id?"selected":""}>${i+1}. ${esc(s.name)}</option>`).join("");
+
+/* ================= Tabs ================= */
+const view=document.getElementById("view");
+function render(){
+  document.getElementById("tabs").innerHTML=TABS.map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?"active":""}">${l}</button>`).join("");
+  view.innerHTML=({projekt:tProjekt,plan:tPlan,hyp:tHyp,sprints:tSprints,gates:tGates,auswertung:tAuswertung,export:tExport}[S.tab]||tProjekt)();
+  if(S.tab==="export") setupExport();
+}
+
+function tProjekt(){const p=S.p;return `
+<div class="card"><h2>Projektsteckbrief</h2><p class="hint">Einmal zu Beginn ausfüllen. Alles lässt sich später anpassen.</p>
+ <div class="g2">
+  <div><label>Projektname</label><input data-b="p.name" value="${esc(p.name)}"></div>
+  <div><label>Projektstart</label><input type="date" data-b="p.start" value="${esc(p.start)}"></div>
+ </div>
+ <label>Vision / Ziel</label><textarea data-b="p.vision" placeholder="Für wen lösen wir welches Problem – und woran merken wir Erfolg?">${esc(p.vision)}</textarea>
+ <h3>Rollen</h3>
+ <div class="g3">
+  <div><label>Product Owner</label><input data-b="p.po" value="${esc(p.po)}"></div>
+  <div><label>Team</label><input data-b="p.team" value="${esc(p.team)}" placeholder="Namen, Komma-getrennt"></div>
+  <div><label>Gatekeeper</label><input data-b="p.gatekeeper" value="${esc(p.gatekeeper)}" placeholder="entscheiden über Budget"></div>
+ </div>
+ <h3>Rahmen</h3>
+ <div class="g4">
+  <div><label>Sprintlänge (Wochen)</label><select data-b="p.sprintLen" data-num data-rr>${opt([1,2,3,4],p.sprintLen)}</select></div>
+  <div><label>Budget-Einheit</label><input data-b="p.budgetUnit" value="${esc(p.budgetUnit)}"></div>
+  <div><label>Unsicherheit Technik</label><select data-b="p.uTech" data-rr>${opt(["niedrig","mittel","hoch"],p.uTech)}</select></div>
+  <div><label>Unsicherheit Markt</label><select data-b="p.uMarkt" data-rr>${opt(["niedrig","mittel","hoch"],p.uMarkt)}</select></div>
+ </div>
+ <p class="hint" style="margin-top:12px;background:var(--accent-soft);padding:10px 12px;border-radius:8px;color:var(--text-primary)">${processHint()}</p>
+</div>`;}
+
+function tPlan(){
+  const sch=planSchedule(), u=esc(S.p.budgetUnit);
+  const tot=S.stages.reduce((a,s)=>a+num(s.budget),0), totS=S.stages.reduce((a,s)=>a+num(s.sprints),0);
+  return `
+<div class="card"><h2>Stages, Sprints & Budget</h2><p class="hint">Plane pro Stage die Anzahl Sprints und das Budget. Am Ende jeder Stage steht ein Gate. Termine ergeben sich aus Start und Sprintlänge.</p>
+<table><tr><th>#</th><th>Stage</th><th>Ziel der Stage</th><th style="width:80px">Sprints</th><th style="width:95px">Budget ${u}</th><th>Plan</th><th></th></tr>
+${S.stages.map((s,i)=>`<tr><td class="muted">${i+1}</td><td><input data-b="stages.${i}.name" value="${esc(s.name)}"></td><td><input data-b="stages.${i}.goal" value="${esc(s.goal)}"></td>
+<td><input type="number" min="0" data-b="stages.${i}.sprints" data-num data-rr value="${s.sprints}"></td><td><input type="number" min="0" data-b="stages.${i}.budget" data-num data-rr value="${s.budget}"></td>
+<td class="sec" style="white-space:nowrap;font-size:13px">${fd(sch[i].start)} – ${fd(sch[i].end)}</td>
+<td>${S.stages.length>1?`<button class="del" data-delstage="${i}" title="Stage entfernen">×</button>`:""}</td></tr>`).join("")}
+<tr><td></td><td><b>Gesamt</b></td><td></td><td><b>${fmtN(totS)}</b></td><td><b>${fmtN(tot)}</b></td><td class="sec" style="font-size:13px">bis ${fd(sch.at(-1)?.end)}</td><td></td></tr></table>
+<button class="btn ghost small" style="margin-top:10px" id="addstage">+ Stage</button></div>
+
+<div class="card"><h2>Gate-Kriterien</h2><p class="hint">Gelten für alle Gates. Must-meet = K.-o., Should-meet = gewichtetes Scoring 1–5.</p>
+<div class="g2"><div><h3>Must-meet</h3>
+${S.must.map((m,i)=>`<div class="row" style="margin-bottom:6px"><input data-b="must.${i}" value="${esc(m)}"><button class="del" data-delmust="${i}">×</button></div>`).join("")}
+<button class="btn ghost small" id="addmust">+ Kriterium</button></div>
+<div><h3>Should-meet</h3>
+${S.should.map((c,i)=>`<div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input data-b="should.${i}.t" value="${esc(c.t)}"><input type="number" style="width:70px" data-b="should.${i}.w" data-num value="${c.w}" title="Gewicht %"><span class="muted">%</span><button class="del" data-delshould="${i}">×</button></div>`).join("")}
+<button class="btn ghost small" id="addshould">+ Kriterium</button></div></div></div>`;}
+
+function tHyp(){
+  return `<div class="card"><h2>Hypothesen-Backlog</h2><p class="hint">Was muss stimmen, damit das Projekt erfolgreich ist? Kritische Hypothesen (★) müssen vor dem Gate ihrer Stage bestätigt sein. Status ändert sich über die Sprints.</p>
+${S.hyps.length?`<table><tr><th style="width:30px">★</th><th>Hypothese</th><th style="width:140px">Typ</th><th style="width:150px">Stage</th><th style="width:120px">Status</th><th>Test / Messkriterium</th><th></th></tr>
+${S.hyps.map((h,i)=>`<tr><td><input type="checkbox" data-b="hyps.${i}.crit" data-bool ${h.crit?"checked":""} style="width:auto" title="kritisch"></td>
+<td><input data-b="hyps.${i}.t" value="${esc(h.t)}" placeholder="Wir glauben, dass …"></td><td><select data-b="hyps.${i}.type">${opt(H_TYPES,h.type)}</select></td>
+<td><select data-b="hyps.${i}.stage">${stageOpts(h.stage)}</select></td><td><select data-b="hyps.${i}.status">${opt(H_STATUS.map(x=>[x[0],x[1]]),h.status)}</select></td>
+<td><input data-b="hyps.${i}.test" value="${esc(h.test)}" placeholder="bestätigt, wenn …"></td><td><button class="del" data-delhyp="${i}">×</button></td></tr>`).join("")}</table>`:`<div class="empty">Noch keine Hypothesen.</div>`}
+<button class="btn ghost small" style="margin-top:10px" id="addhyp">+ Hypothese</button></div>`;}
+
+function tSprints(){
+  const cs=currentStage(); const u=esc(S.p.budgetUnit);
+  const list=S.sprints.map((sp,i)=>({sp,i})).reverse();
+  return `<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Sprints</h2><p class="hint" style="margin:0">Aktuelle Stage: <b>${esc(cs?.name||"–")}</b>. Nach jedem Sprint-Review hier eintragen – neueste oben.</p></div>
+<button class="btn" id="addsprint">+ Neuer Sprint</button></div>
+${list.length?list.map(({sp,i})=>{const st=stageById(sp.stage);const ok={ja:"var(--good)",teilweise:"var(--warning)",nein:"var(--critical)"}[sp.goalMet];
+return `<details class="sprint" ${i===S.sprints.length-1?"open":""}><summary><b>Sprint ${i+1}</b><span class="sec">${esc(st?.name||"")}</span><span class="muted">${fd(sp.start)} – ${fd(sp.end)}</span>
+${sp.goalMet?`<span class="pill"><span class="dot" style="background:${ok}"></span>Ziel ${sp.goalMet==="ja"?"erreicht":sp.goalMet==="teilweise"?"teilweise":"verfehlt"}</span>`:""}<span class="sec" style="flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sp.goal)}</span></summary>
+<div class="g4"><div><label>Stage</label><select data-b="sprints.${i}.stage" data-rr>${stageOpts(sp.stage)}</select></div>
+<div><label>Start</label><input type="date" data-b="sprints.${i}.start" value="${esc(sp.start)}"></div>
+<div><label>Ende</label><input type="date" data-b="sprints.${i}.end" value="${esc(sp.end)}"></div>
+<div><label>Budget verbraucht (${u})</label><input type="number" min="0" data-b="sprints.${i}.budget" data-num value="${esc(sp.budget)}"></div></div>
+<label>Sprintziel</label><input data-b="sprints.${i}.goal" value="${esc(sp.goal)}">
+<div class="g2"><div><label>Ergebnis / Inkrement</label><textarea data-b="sprints.${i}.result">${esc(sp.result)}</textarea></div>
+<div><label>Kunden- / Stakeholder-Feedback</label><textarea data-b="sprints.${i}.feedback">${esc(sp.feedback)}</textarea></div>
+<div><label>Learnings</label><textarea data-b="sprints.${i}.learn">${esc(sp.learn)}</textarea></div>
+<div><label>Backlog-Änderungen / nächste Schritte</label><textarea data-b="sprints.${i}.next">${esc(sp.next)}</textarea></div></div>
+<div class="g2"><div><label>Sprintziel erreicht?</label><div class="seg">${[["ja","ja"],["teilweise","teilweise"],["nein","nein"]].map(([v,l])=>`<label><input type="radio" name="gm${i}" data-b="sprints.${i}.goalMet" data-rr value="${v}" ${sp.goalMet===v?"checked":""}><span>${l}</span></label>`).join("")}</div></div>
+<div><label>Zuversicht, dass das Projekt Erfolg hat (1–5)</label><div class="seg">${[1,2,3,4,5].map(v=>`<label><input type="radio" name="cf${i}" data-b="sprints.${i}.conf" data-num value="${v}" ${num(sp.conf)===v?"checked":""}><span>${v}</span></label>`).join("")}</div></div></div>
+${S.hyps.length?`<label>Getestete Hypothesen – Ergebnis setzt den Status im Backlog</label><table>${S.hyps.map((h,j)=>{const r=(sp.tested||{})[h.id]||"";return `<tr><td style="width:30px">${h.crit?"★":""}</td><td>${esc(h.t||"(ohne Text)")}</td><td style="width:170px"><select data-test="${i}|${h.id}"><option value="">nicht getestet</option>${opt(H_STATUS.filter(x=>x[0]!=="offen").map(x=>[x[0],x[1]]),r)}</select></td></tr>`;}).join("")}</table>`:""}
+<div style="text-align:right;margin-top:10px"><button class="btn ghost small" data-delsprint="${i}" style="color:var(--critical);border-color:var(--critical)">Sprint löschen</button></div></details>`;}).join(""):`<div class="empty">Noch keine Sprints. Leg den ersten an, sobald es losgeht.</div>`}</div>`;}
+
+function tGates(){
+  const sch=planSchedule(); const cs=currentStage();
+  return S.stages.map((s,i)=>{const g=gateOf(s.id), sg=gateSuggestion(s.id), a=stageActual(s.id), sc=gateScore(s.id);
+  const hs=S.hyps.filter(h=>h.stage===s.id);
+  const open=s.id===cs?.id||g.decision;
+  return `<details class="card" ${s.id===cs?.id?"open":""}><summary style="cursor:pointer;list-style:none" class="row"><h2 style="margin:0">Gate ${i+1} – nach „${esc(s.name)}“</h2>${decPill(g.decision)}<span class="muted" style="font-size:13px">Plan ${fd(sch[i].end)}${g.date?` · Gate am ${fd(g.date)}`:""}</span></summary>
+  <p class="hint" style="margin-top:10px">Stage-Ziel: ${esc(s.goal||"–")} · Sprints: ${a?a.n:0} von ${s.sprints} geplant · Budget: ${fmtN(a?a.budget:0)} von ${fmtN(num(s.budget))} ${esc(S.p.budgetUnit)}</p>
+  ${hs.length?`<h3>Hypothesen dieser Stage</h3><div class="row">${hs.map(h=>{const st=hStat(h.status);return `<span class="pill" title="${esc(h.t)}"><span class="dot" style="background:${st[2]}"></span>${h.crit?"★ ":""}${esc((h.t||"").slice(0,40))}${(h.t||"").length>40?"…":""} · ${st[1]}</span>`;}).join("")}</div>`:""}
+  <div class="g2"><div><h3>Must-meet</h3><table>${S.must.map((m,k)=>`<tr><td>${esc(m)}</td><td style="width:170px"><div class="seg">${[["ja","Ja"],["nein","Nein"],["offen","Offen"]].map(([v,l])=>`<label><input type="radio" name="m${i}_${k}" data-b="gates.${s.id}.must.${k}" data-rr value="${v}" ${g.must[k]===v?"checked":""}><span>${l}</span></label>`).join("")}</div></td></tr>`).join("")}</table></div>
+  <div><h3>Should-meet (1–5)</h3><table>${S.should.map((c,k)=>`<tr><td>${esc(c.t)} <span class="muted">${c.w} %</span></td><td style="width:80px"><select data-b="gates.${s.id}.should.${k}" data-rr>${opt([["","–"],1,2,3,4,5],g.should[k]||"")}</select></td></tr>`).join("")}</table>
+  <p class="sec" style="font-size:13px;margin:6px 0 0">Score: <b>${sc===null?"–":sc+" %"}</b></p></div></div>
+  <div class="verdict"><div><div class="muted" style="font-size:12px">Vorschlag</div><div class="big" style="color:${DEC_COLOR[sg.d]||"var(--muted)"}">${sg.d}</div></div><div class="sec" style="font-size:13.5px">${sg.why}</div></div>
+  <div class="g2"><div><label>Entscheidung der Gatekeeper</label><div class="seg">${DECISIONS.map(d=>`<label><input type="radio" name="dec${i}" data-b="gates.${s.id}.decision" data-rr value="${d}" ${g.decision===d?"checked":""}><span>${d}</span></label>`).join("")}</div></div>
+  <div class="g2"><div><label>Gate-Datum</label><input type="date" data-b="gates.${s.id}.date" value="${esc(g.date)}"></div>
+  <div><label>Freigegebene Sprints (nächste Stage)</label><input type="number" min="0" data-b="gates.${s.id}.released" data-num value="${esc(g.released)}"></div></div></div>
+  <div class="g2"><div><label>Begründung</label><textarea data-b="gates.${s.id}.reason">${esc(g.reason)}</textarea></div>
+  <div><label>Auflagen / Bedingungen</label><textarea data-b="gates.${s.id}.cond">${esc(g.cond)}</textarea></div></div>
+  </details>`;}).join("")+`<p class="muted" style="font-size:12.5px">Pivot = Richtung ändern (z. B. andere Zielgruppe oder Lösung), Recycle = weitere Sprints in derselben Stage, Hold = zurückstellen.</p>`;}
+
+/* ================= Auswertung ================= */
+function kpis(){
+  const totS=S.stages.reduce((a,s)=>a+num(s.sprints),0), done=S.sprints.length;
+  const totB=S.stages.reduce((a,s)=>a+num(s.budget),0), usedB=S.sprints.reduce((a,x)=>a+num(x.budget),0);
+  const hc=S.hyps.filter(h=>h.crit), hcOk=hc.filter(h=>h.status==="ok").length;
+  const cs=currentStage(); const conf=[...S.sprints].reverse().find(x=>x.conf);
+  return {totS,done,totB,usedB,hc:hc.length,hcOk,cs,conf:conf?num(conf.conf):null};
+}
+function tAuswertung(){
+  const k=kpis(), u=esc(S.p.budgetUnit);
+  return `<div class="kpis">
+  <div class="kpi"><div class="l">Aktuelle Stage</div><div class="v" style="font-size:20px;padding:4px 0">${esc(k.cs?.name||"–")}</div><div class="s">Stage ${stageIdx(k.cs?.id)+1} von ${S.stages.length}</div></div>
+  <div class="kpi"><div class="l">Sprints</div><div class="v">${k.done} <span class="s">/ ${fmtN(k.totS)} geplant</span></div><div class="s">${k.totS?Math.round(k.done/k.totS*100):0} % des Plans</div></div>
+  <div class="kpi"><div class="l">Budget verbraucht</div><div class="v">${fmtN(k.usedB)} <span class="s">${u}</span></div><div class="s">${k.totB?Math.round(k.usedB/k.totB*100):0} % von ${fmtN(k.totB)} ${u}</div></div>
+  <div class="kpi"><div class="l">Kritische Hypothesen bestätigt</div><div class="v">${k.hcOk} <span class="s">/ ${k.hc}</span></div><div class="s">Zuversicht zuletzt: ${k.conf??"–"} / 5</div></div></div>
+  <div class="card"><h2>Roadmap: Plan vs. Ist</h2><p class="hint">Obere Linie je Stage = geplanter Zeitraum, darunter die tatsächlichen Sprints. Rauten = Gates mit Entscheidung.</p>${chartRoadmap()}</div>
+  <div class="card"><h2>Budget je Stage</h2><p class="hint">Geplant vs. verbraucht (Summe der Sprints), in ${u}.</p>${chartBudget()}</div>
+  <div class="card"><h2>Hypothesen-Status je Stage</h2><p class="hint">Anteil der Hypothesen nach Status. Zahl im Balken = Anzahl.</p>${chartHyp()}</div>
+  <div class="card"><h2>Zuversicht über die Sprints</h2><p class="hint">Einschätzung des Teams nach jedem Sprint-Review (1–5). Punktfarbe = Sprintziel erreicht.</p>${chartConf()}</div>
+  <div class="card"><h2>Gate-Scores</h2><p class="hint">Should-meet-Score je bewertetem Gate, Linien bei 50 % und 70 %.</p>${chartGates()}</div>`;
+}
+const T=s=>esc(s).replace(/\n/g,"&#10;");
+function chartRoadmap(){
+  const sch=planSchedule(); if(!S.stages.length) return `<div class="empty">Keine Stages.</div>`;
+  const dates=[]; sch.forEach(x=>{dates.push(D(x.start),D(x.end));});
+  S.sprints.forEach(x=>{if(D(x.start))dates.push(D(x.start));if(D(x.end))dates.push(D(x.end));});
+  Object.values(S.gates).forEach(g=>{if(D(g.date))dates.push(D(g.date));});
+  const mn=new Date(Math.min(...dates)), mx=new Date(Math.max(...dates)); const span=Math.max(1,mx-mn);
+  const W=920,L=150,R=90,rowH=50,top=26,H=top+S.stages.length*rowH+8;
+  const x=d=>L+(D(d)-mn)/span*(W-L-R);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Roadmap Plan gegen Ist">`;
+  // Monatsraster
+  const m=new Date(mn.getFullYear(),mn.getMonth(),1);
+  s+=`<text x="${L}" y="14" font-size="11" fill="var(--muted)">${mn.toLocaleDateString("de-DE",{day:"2-digit",month:"short"})}</text>`;
+  while(m<=mx){ if(m>=mn){const xx=L+(m-mn)/span*(W-L-R); const lab=xx-L>48; s+=`<line x1="${xx}" x2="${xx}" y1="${top-6}" y2="${H-8}" stroke="var(--grid)"/>${lab?`<text x="${xx+3}" y="14" font-size="11" fill="var(--muted)">${m.toLocaleDateString("de-DE",{month:"short",year:"2-digit"})}</text>`:""}`;} m.setMonth(m.getMonth()+1);}
+  const td=today(); if(D(td)>=mn&&D(td)<=mx){const xx=x(td);s+=`<line x1="${xx}" x2="${xx}" y1="${top-6}" y2="${H-8}" stroke="var(--text-secondary)" stroke-dasharray="3 3"/><text x="${xx}" y="${H}" font-size="11" fill="var(--text-secondary)" text-anchor="middle">heute</text>`;}
+  S.stages.forEach((st,i)=>{
+    const y=top+i*rowH; const p=sch[i];
+    s+=`<text x="0" y="${y+16}" font-size="13" fill="var(--text-primary)">${i+1}. ${esc(st.name.length>18?st.name.slice(0,17)+"…":st.name)}</text>`;
+    s+=`<rect x="${x(p.start)}" y="${y+6}" width="${Math.max(3,x(p.end)-x(p.start)-2)}" height="9" rx="4" fill="var(--grid)" stroke="var(--axis)" data-tip="${T(`${st.name} – Plan\n${fd(p.start)} – ${fd(p.end)}\n${st.sprints} Sprints · ${fmtN(num(st.budget))} ${S.p.budgetUnit}`)}"/>`;
+    S.sprints.map((sp,j)=>({sp,j})).filter(o=>o.sp.stage===st.id&&D(o.sp.start)).forEach(({sp,j})=>{
+      const x1=x(sp.start), x2=x(sp.end||addDays(sp.start,num(S.p.sprintLen)*7));
+      s+=`<rect x="${x1}" y="${y+21}" width="${Math.max(3,x2-x1-2)}" height="12" rx="4" fill="var(--series-1)" data-tip="${T(`Sprint ${j+1} – ${st.name}\n${fd(sp.start)} – ${fd(sp.end)}\n${sp.goal||""}${sp.goalMet?`\nZiel: ${sp.goalMet}`:""}`)}"/>`;
+    });
+    const g=S.gates[st.id]; const gd=g&&g.date?g.date:p.end; const gx=x(gd), gy=y+19, c=g&&g.decision?DEC_COLOR[g.decision]:"var(--surface-1)";
+    s+=`<path d="M${gx} ${gy-8} L${gx+8} ${gy} L${gx} ${gy+8} L${gx-8} ${gy} Z" fill="${c}" stroke="${g&&g.decision?"var(--surface-1)":"var(--muted)"}" stroke-width="2" data-tip="${T(`Gate ${i+1}${g&&g.date?" am "+fd(g.date):" (Plan "+fd(p.end)+")"}\nEntscheidung: ${g&&g.decision||"offen"}`)}"/>`;
+    s+=`<text x="${gx+12}" y="${gy+4}" font-size="12" fill="var(--text-secondary)">${g&&g.decision?esc(g.decision):""}</text>`;
+  });
+  s+=`</svg>`;
+  return `<div class="legend"><span><i class="sw" style="background:var(--grid);border:1px solid var(--axis)"></i>Plan</span><span><i class="sw" style="background:var(--series-1)"></i>Sprint (Ist)</span>${DECISIONS.map(d=>`<span><i class="sw" style="background:${DEC_COLOR[d]};transform:rotate(45deg) scale(.8)"></i>Gate ${d}</span>`).join("")}<span><i class="sw" style="border:2px solid var(--muted);transform:rotate(45deg) scale(.8)"></i>Gate offen</span></div>`+s;
+}
+function chartBudget(){
+  const rows=S.stages.map(st=>({n:st.name,p:num(st.budget),a:stageActual(st.id)?.budget||0}));
+  const mx=Math.max(1,...rows.map(r=>Math.max(r.p,r.a))); const nice=niceMax(mx);
+  const W=920,L=50,B=40,top=14,H=260, cw=(W-L-10)/rows.length, bw=Math.min(34,cw/3.2);
+  const y=v=>top+(H-top-B)*(1-v/nice);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Budget je Stage">`;
+  for(let t=0;t<=4;t++){const v=nice*t/4,yy=y(v);s+=`<line x1="${L}" x2="${W-10}" y1="${yy}" y2="${yy}" stroke="${t?"var(--grid)":"var(--axis)"}"/><text x="${L-8}" y="${yy+4}" font-size="11" fill="var(--muted)" text-anchor="end">${fmtN(v)}</text>`;}
+  rows.forEach((r,i)=>{const cx=L+cw*i+cw/2;
+    s+=bar(cx-bw-1,y(r.p),bw,y(0)-y(r.p),"var(--series-1)",`${r.n}\nPlan: ${fmtN(r.p)} ${S.p.budgetUnit}`);
+    s+=bar(cx+1,y(r.a),bw,y(0)-y(r.a),"var(--series-2)",`${r.n}\nVerbraucht: ${fmtN(r.a)} ${S.p.budgetUnit}${r.p?` (${Math.round(r.a/r.p*100)} %)`:""}`);
+    if(r.a>0) s+=`<text x="${cx+1+bw/2}" y="${y(r.a)-5}" font-size="11" fill="var(--text-secondary)" text-anchor="middle">${fmtN(r.a)}</text>`;
+    s+=`<text x="${cx}" y="${H-B+18}" font-size="12" fill="var(--text-secondary)" text-anchor="middle">${esc(r.n.length>16?r.n.slice(0,15)+"…":r.n)}</text>`;});
+  s+=`</svg>`;
+  return `<div class="legend"><span><i class="sw" style="background:var(--series-1)"></i>Geplant</span><span><i class="sw" style="background:var(--series-2)"></i>Verbraucht</span></div>`+s;
+}
+function bar(x,y,w,h,fill,tip){ if(h<=0) return ""; const r=Math.min(4,h,w/2);
+  return `<path d="M${x} ${y+h} V${y+r} Q${x} ${y} ${x+r} ${y} H${x+w-r} Q${x+w} ${y} ${x+w} ${y+r} V${y+h} Z" fill="${fill}" data-tip="${T(tip)}"/>`;}
+function niceMax(v){const p=Math.pow(10,Math.floor(Math.log10(v)));const n=v/p;return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p;}
+function chartHyp(){
+  if(!S.hyps.length) return `<div class="empty">Noch keine Hypothesen im Backlog.</div>`;
+  const rows=[...S.stages.map(st=>({n:st.name,h:S.hyps.filter(h=>h.stage===st.id)})).filter(r=>r.h.length),{n:"Gesamt",h:S.hyps,tot:true}];
+  const W=920,L=150,R=40,rowH=34,H=rowH*rows.length+6;
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Hypothesen-Status je Stage">`;
+  rows.forEach((r,i)=>{const y=i*rowH+4; let xx=L; const tot=r.h.length; const bw=W-L-R;
+    s+=`<text x="0" y="${y+17}" font-size="13" fill="var(--text-primary)" ${r.tot?'font-weight="600"':""}>${esc(r.n.length>18?r.n.slice(0,17)+"…":r.n)}</text>`;
+    H_STATUS.forEach(([k,l,c])=>{const n=r.h.filter(h=>h.status===k).length; if(!n) return; const w=n/tot*bw;
+      s+=`<rect x="${xx}" y="${y}" width="${Math.max(1,w-2)}" height="24" rx="4" fill="${c}" data-tip="${T(`${r.n}\n${l}: ${n} von ${tot}`)}"/>`;
+      if(w>22) s+=`<text x="${xx+w/2-1}" y="${y+16}" font-size="12" text-anchor="middle" fill="${k==="test"?"#0b0b0b":k==="offen"?"var(--text-primary)":"#ffffff"}">${n}</text>`;
+      xx+=w;});
+    s+=`<text x="${W-R+8}" y="${y+16}" font-size="12" fill="var(--muted)">${tot}</text>`;});
+  s+=`</svg>`;
+  return `<div class="legend">${H_STATUS.map(([k,l,c])=>`<span><i class="sw" style="background:${c}"></i>${l}</span>`).join("")}</div>`+s;
+}
+function chartConf(){
+  const pts=S.sprints.map((sp,i)=>({i,sp,v:num(sp.conf)})).filter(o=>o.v);
+  if(!pts.length) return `<div class="empty">Noch keine Sprint-Bewertungen.</div>`;
+  const n=S.sprints.length, W=920,L=40,R=20,top=16,B=50,H=250;
+  const x=i=>L+(n===1?(W-L-R)/2:i/(n-1)*(W-L-R)), y=v=>top+(H-top-B)*(1-(v-1)/4);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Zuversicht über die Sprints">`;
+  for(let v=1;v<=5;v++){s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${v===1?"var(--axis)":"var(--grid)"}"/><text x="${L-10}" y="${y(v)+4}" font-size="11" fill="var(--muted)" text-anchor="end">${v}</text>`;}
+  // Stage-Bänder
+  let last=null; S.sprints.forEach((sp,i)=>{ if(sp.stage!==last){ last=sp.stage; const st=stageById(sp.stage); if(i>0) s+=`<line x1="${(x(i)+x(i-1))/2}" x2="${(x(i)+x(i-1))/2}" y1="${top}" y2="${H-B}" stroke="var(--axis)" stroke-dasharray="2 4"/>`; s+=`<text x="${i>0?(x(i)+x(i-1))/2+4:L}" y="${H-8}" font-size="11" fill="var(--text-secondary)">${esc(st?.name||"")}</text>`; }});
+  s+=`<polyline points="${pts.map(o=>`${x(o.i)},${y(o.v)}`).join(" ")}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round"/>`;
+  const gc={ja:"var(--good)",teilweise:"var(--warning)",nein:"var(--critical)"};
+  S.sprints.forEach((sp,i)=>{s+=`<text x="${x(i)}" y="${H-B+16}" font-size="11" fill="var(--muted)" text-anchor="middle">S${i+1}</text>`;});
+  pts.forEach(o=>{const c=gc[o.sp.goalMet]||"var(--series-1)";
+    s+=`<circle cx="${x(o.i)}" cy="${y(o.v)}" r="5.5" fill="${c}" stroke="var(--surface-1)" stroke-width="2"/>`;
+    s+=`<rect x="${x(o.i)-14}" y="${top}" width="28" height="${H-top-B}" fill="transparent" data-tip="${T(`Sprint ${o.i+1}\nZuversicht: ${o.v} / 5\nZiel: ${o.sp.goalMet||"–"}${o.sp.goal?"\n"+o.sp.goal:""}`)}"/>`;});
+  s+=`</svg>`;
+  return `<div class="legend"><span><i class="sw" style="background:var(--good);border-radius:50%"></i>Ziel erreicht</span><span><i class="sw" style="background:var(--warning);border-radius:50%"></i>teilweise</span><span><i class="sw" style="background:var(--critical);border-radius:50%"></i>verfehlt</span></div>`+s;
+}
+function chartGates(){
+  const rows=S.stages.map((st,i)=>({i,st,sc:gateScore(st.id),g:S.gates[st.id]})).filter(r=>r.sc!==null);
+  if(!rows.length) return `<div class="empty">Noch kein Gate bewertet.</div>`;
+  const W=920,L=46,B=46,top=14,H=240, cw=(W-L-10)/Math.max(rows.length,3), bw=Math.min(56,cw/2.2);
+  const y=v=>top+(H-top-B)*(1-v/100);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gate-Scores">`;
+  [0,25,50,75,100].forEach(v=>{s+=`<line x1="${L}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}" stroke="${v?"var(--grid)":"var(--axis)"}"/><text x="${L-8}" y="${y(v)+4}" font-size="11" fill="var(--muted)" text-anchor="end">${v} %</text>`;});
+  rows.forEach((r,k)=>{const cx=L+cw*k+cw/2; const d=r.g&&r.g.decision;
+    s+=bar(cx-bw/2,y(r.sc),bw,y(0)-y(r.sc),"var(--series-1)",`Gate ${r.i+1} – ${r.st.name}\nScore: ${r.sc} %\nEntscheidung: ${d||"offen"}`);
+    s+=`<text x="${cx}" y="${y(r.sc)-6}" font-size="12" fill="var(--text-primary)" text-anchor="middle" font-weight="600">${r.sc} %</text>`;
+    s+=`<text x="${cx}" y="${H-B+17}" font-size="12" fill="var(--text-secondary)" text-anchor="middle">Gate ${r.i+1}</text>`;
+    s+=`<circle cx="${cx-24}" cy="${H-B+32}" r="4.5" fill="${d?DEC_COLOR[d]:"var(--neutral)"}"/><text x="${cx-15}" y="${H-B+36}" font-size="12" fill="var(--text-secondary)">${d||"offen"}</text>`;});
+  [[70,"Go-Schwelle 70 %"],[50,"50 %"]].forEach(([v,l])=>{s+=`<line x1="${L}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}" stroke="var(--text-secondary)" stroke-dasharray="4 4"/><text x="${W-12}" y="${y(v)-5}" font-size="11" fill="var(--text-secondary)" text-anchor="end">${l}</text>`;});
+  return s+`</svg>`;
+}
+
+/* ================= Markdown ================= */
+const mm=s=>String(s||"").replace(/[:#;,]/g," ").replace(/\s+/g," ").trim()||"–";
+function buildMd(){
+  const p=S.p, sch=planSchedule(), k=kpis(), u=p.budgetUnit;
+  const L=[];
+  L.push(`# ${p.name||"Projekt"} – Agile-Stage-Gate-Projektdokument`,"",`*Stand: ${fd(today())}*`,"");
+  L.push("## Steckbrief","","| | |","|---|---|",`| **Projekt** | ${mdc(p.name)||"–"} |`,`| **Vision / Ziel** | ${mdc(p.vision)||"–"} |`,`| **Product Owner** | ${mdc(p.po)||"–"} |`,`| **Team** | ${mdc(p.team)||"–"} |`,`| **Gatekeeper** | ${mdc(p.gatekeeper)||"–"} |`,`| **Start** | ${fd(p.start)} |`,`| **Sprintlänge** | ${p.sprintLen} Wochen |`,`| **Unsicherheit** | Technik ${p.uTech} · Markt ${p.uMarkt} |`,"");
+  L.push(`> **Prozessempfehlung:** ${processHint()}`,"");
+  L.push("## Status auf einen Blick","",`| Kennzahl | Wert |`,`|---|---|`,`| Aktuelle Stage | ${mdc(k.cs?.name)} (${stageIdx(k.cs?.id)+1} von ${S.stages.length}) |`,`| Sprints | ${k.done} von ${fmtN(k.totS)} geplant |`,`| Budget | ${fmtN(k.usedB)} von ${fmtN(k.totB)} ${u} (${k.totB?Math.round(k.usedB/k.totB*100):0} %) |`,`| Kritische Hypothesen bestätigt | ${k.hcOk} von ${k.hc} |`,`| Zuversicht (letzter Sprint) | ${k.conf??"–"} / 5 |`,"");
+  L.push("## Plan","",`| # | Stage | Ziel | Sprints Plan / Ist | Budget Plan / Ist (${u}) | Zeitraum Plan | Gate |`,"|---|---|---|---|---|---|---|");
+  S.stages.forEach((s,i)=>{const a=stageActual(s.id), g=S.gates[s.id]; L.push(`| ${i+1} | ${mdc(s.name)} | ${mdc(s.goal)} | ${s.sprints} / ${a?a.n:0} | ${fmtN(num(s.budget))} / ${fmtN(a?a.budget:0)} | ${fd(sch[i].start)} – ${fd(sch[i].end)} | ${g&&g.decision||"offen"} |`);});
+  L.push("","### Roadmap","","```mermaid","gantt",`  title ${mm(p.name||"Roadmap")}`,"  dateFormat YYYY-MM-DD","  axisFormat %d.%m.%y","  section Plan");
+  S.stages.forEach((s,i)=>L.push(`  ${mm(s.name)} :p${i}, ${sch[i].start}, ${sch[i].end}`));
+  if(S.sprints.some(x=>x.start&&x.end)){L.push("  section Sprints (Ist)");S.sprints.forEach((x,i)=>{if(x.start&&x.end)L.push(`  S${i+1} ${mm(stageById(x.stage)?.name)} :done, s${i}, ${x.start}, ${x.end}`);});}
+  L.push("  section Gates");
+  S.stages.forEach((s,i)=>{const g=S.gates[s.id];L.push(`  Gate ${i+1} ${mm(g&&g.decision||"offen")} :milestone${g&&g.decision==="Go"?", done":""}, g${i}, ${g&&g.date||sch[i].end}, 0d`);});
+  L.push("```","");
+  L.push("## Hypothesen","");
+  if(S.hyps.length){
+    L.push("| ★ | Hypothese | Typ | Stage | Status | Test / Kriterium |","|---|---|---|---|---|---|");
+    S.hyps.forEach(h=>L.push(`| ${h.crit?"★":""} | ${mdc(h.t)} | ${h.type} | ${mdc(stageById(h.stage)?.name)} | ${hStat(h.status)[1]} | ${mdc(h.test)} |`));
+    L.push("","```mermaid",`pie title Hypothesen nach Status`);
+    H_STATUS.forEach(([k2,l])=>{const n=S.hyps.filter(h=>h.status===k2).length;if(n)L.push(`  "${l}" : ${n}`);});
+    L.push("```","");
+  } else L.push("Noch keine Hypothesen.","");
+  L.push("## Sprint-Log","");
+  if(S.sprints.length){
+    L.push(`| Sprint | Stage | Zeitraum | Ziel | erreicht | Zuversicht | Budget (${u}) |`,"|---|---|---|---|---|---|---|");
+    S.sprints.forEach((x,i)=>L.push(`| ${i+1} | ${mdc(stageById(x.stage)?.name)} | ${fd(x.start)} – ${fd(x.end)} | ${mdc(x.goal)} | ${x.goalMet||"–"} | ${x.conf||"–"} | ${fmtN(num(x.budget))} |`));
+    L.push("");
+    S.sprints.forEach((x,i)=>{L.push(`### Sprint ${i+1}: ${x.goal||""}`.trim(),"");
+      [["Ergebnis",x.result],["Feedback",x.feedback],["Learnings",x.learn],["Nächste Schritte",x.next]].forEach(([l,v])=>{if(v&&v.trim())L.push(`**${l}:** ${v.trim()}`,"");});
+      const t=Object.entries(x.tested||{}).filter(([,v])=>v); if(t.length){L.push("**Getestete Hypothesen:**","");t.forEach(([hid,v])=>{const h=S.hyps.find(z=>z.id===hid);if(h)L.push(`- ${h.t} → ${hStat(v)[1]}`);});L.push("");}});
+  } else L.push("Noch keine Sprints.","");
+  L.push("## Gate-Entscheidungen","");
+  S.stages.forEach((s,i)=>{const g=S.gates[s.id]; if(!g||(!g.decision&&!g.date&&!Object.keys(g.should||{}).length)) return;
+    const sc=gateScore(s.id), sg=gateSuggestion(s.id);
+    L.push(`### Gate ${i+1} – nach „${s.name}“: **${g.decision||"offen"}**`,"",`Datum: ${fd(g.date)} · Score: ${sc===null?"–":sc+" %"} · Vorschlag Modell: ${sg.d}${g.released?` · Freigegeben: ${g.released} Sprints`:""}`,"");
+    if(g.reason)L.push(`**Begründung:** ${g.reason}`,""); if(g.cond)L.push(`**Auflagen:** ${g.cond}`,"");
+    L.push("| Must-meet | Erfüllt |","|---|---|"); S.must.forEach((m,k2)=>L.push(`| ${mdc(m)} | ${g.must[k2]==="ja"?"✅ ja":g.must[k2]==="nein"?"❌ nein":"⏳ offen"} |`));
+    L.push("","| Should-meet | Gewicht | Score |","|---|---:|---:|"); S.should.forEach((c,k2)=>L.push(`| ${mdc(c.t)} | ${c.w} % | ${g.should[k2]||"–"} |`)); L.push("");});
+  if(!S.stages.some(s=>S.gates[s.id]&&S.gates[s.id].decision)) L.push("Noch keine Gate-Entscheidung.","");
+  L.push("---","","*Erstellt mit dem Agile-Stage-Gate-Planer (Cooper 2014/2016). Mermaid-Diagramme werden z. B. auf GitHub, in Obsidian und Notion direkt gerendert.*");
+  L.push("",`<!-- agile-stage-gate-data:${b64e(JSON.stringify({...S,tab:"auswertung"}))} -->`);
+  return L.join("\n");
+}
+const b64e=t=>btoa(unescape(encodeURIComponent(t)));
+const b64d=t=>decodeURIComponent(escape(atob(t)));
+
+/* ================= Export ================= */
+function tExport(){return `<div class="card"><h2>Projektdokument (.md)</h2><p class="hint">Enthält Steckbrief, Status, Plan, Roadmap und Hypothesen-Diagramm (Mermaid), Sprint-Log und Gate-Entscheidungen. Nach jedem Sprint oder Gate neu exportieren.</p>
+<div class="row" style="margin-bottom:10px"><button class="btn" id="dlmd">.md herunterladen</button><button class="btn ghost" id="copymd">Kopieren</button><span class="toast" id="toast"></span></div>
+<pre id="md">${esc(buildMd())}</pre></div>
+<div class="card"><h2>Weiterarbeiten</h2><p class="hint" style="margin:0">Der Stand bleibt in diesem Browser gespeichert. Sicherer: oben <b>Projekt speichern (.json)</b> und die Datei z. B. im Projektordner ablegen. Mit <b>Projekt laden</b> machst du später genau dort weiter – das geht auch direkt mit einem exportierten .md-Dokument.</p></div>`;}
+let DL=null;
+async function getDL(){ if(DL!==null) return DL; try{ if(window.claude&&window.claude.use){ DL=await window.claude.use("downloads"); } else DL=false; }catch(e){DL=false;} return DL; }
+async function saveFile(name,text,mime){
+  const dl=await getDL();
+  if(dl){ try{await dl.save({filename:name,data:new Blob([text],{type:mime})});return true;}catch(e){ try{await dl.save({filename:name,data:text});return true;}catch(e2){return false;} } }
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();return true;}catch(e){return false;}
+}
+const slug=()=>(S.p.name||"projekt").toLowerCase().replace(/[äöüß]/g,c=>({ä:"ae",ö:"oe",ü:"ue",ß:"ss"}[c])).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"projekt";
+function setupExport(){
+  const t=document.getElementById("toast");
+  document.getElementById("dlmd").onclick=async()=>{t.textContent=(await saveFile(`${slug()}_agile-stage-gate_${today()}.md`,buildMd(),"text/markdown"))?"Gespeichert ✓":"Download nicht möglich – nutze Kopieren.";};
+  document.getElementById("copymd").onclick=async()=>{try{await navigator.clipboard.writeText(buildMd());t.textContent="Kopiert ✓";}catch(e){const r=document.createRange();r.selectNodeContents(document.getElementById("md"));const s=getSelection();s.removeAllRanges();s.addRange(r);t.textContent="Markiert – mit Strg/Cmd+C kopieren";}};
+}
+
+/* ================= Events ================= */
+function applyBind(el){
+  const p=el.dataset.b; let v;
+  if(el.type==="checkbox"&&el.dataset.bool!==undefined) v=el.checked;
+  else if(el.type==="radio"){ if(!el.checked) return false; v=el.value; }
+  else v=el.value;
+  if(el.dataset.num!==undefined && v!=="") v=num(v);
+  setPath(S,p,v); return true;
+}
+document.addEventListener("input",e=>{const el=e.target;
+  if(el.dataset.b){ if(applyBind(el)){ save(); if(el.dataset.rr!==undefined&&el.type!=="text"&&el.tagName!=="TEXTAREA") render(); } }
+  if(el.dataset.test){const [i,hid]=el.dataset.test.split("|");const sp=S.sprints[+i];sp.tested=sp.tested||{};sp.tested[hid]=el.value;const h=S.hyps.find(z=>z.id===hid);if(h&&el.value)h.status=el.value;save();}
+});
+document.addEventListener("change",e=>{const el=e.target;
+  if(el.dataset.b&&el.dataset.rr!==undefined&&(el.type==="number")) render();
+  if(el.id==="loadJson"&&el.files[0]){const r=new FileReader();r.onload=()=>{try{const txt=String(r.result);const m=txt.match(/agile-stage-gate-data:([A-Za-z0-9+\/=]+)/);const d=JSON.parse(m?b64d(m[1]):txt);if(!d.stages)throw 0;S=d;S.tab="auswertung";save();render();flash("Projekt geladen ✓");}catch(err){flash("Datei konnte nicht gelesen werden.");}};r.readAsText(el.files[0]);el.value="";}
+});
+document.addEventListener("click",async e=>{const t=e.target, ds=t.dataset||{};
+  if(ds.tab){S.tab=ds.tab;save();render();return;}
+  const act=t.id;
+  if(act==="addstage"){S.stages.push({id:uid(),name:"Neue Stage",sprints:2,budget:0,goal:""});}
+  else if(act==="addmust"){S.must.push("");}
+  else if(act==="addshould"){S.should.push({t:"",w:10});}
+  else if(act==="addhyp"){S.hyps.push({id:uid(),t:"",type:H_TYPES[0],stage:currentStage()?.id,status:"offen",test:"",crit:false});}
+  else if(act==="addsprint"){const last=S.sprints.at(-1);const start=last&&last.end?last.end:(S.p.start||today());
+    S.sprints.push({stage:currentStage()?.id,start,end:addDays(start,num(S.p.sprintLen)*7),goal:"",result:"",feedback:"",learn:"",next:"",goalMet:"",conf:"",budget:"",tested:{}});}
+  else if(ds.delstage!==undefined){const st=S.stages[+ds.delstage];S.stages.splice(+ds.delstage,1);delete S.gates[st.id];const f=S.stages[0].id;S.hyps.forEach(h=>{if(h.stage===st.id)h.stage=f;});S.sprints.forEach(x=>{if(x.stage===st.id)x.stage=f;});}
+  else if(ds.delmust!==undefined){S.must.splice(+ds.delmust,1);}
+  else if(ds.delshould!==undefined){S.should.splice(+ds.delshould,1);}
+  else if(ds.delhyp!==undefined){S.hyps.splice(+ds.delhyp,1);}
+  else if(ds.delsprint!==undefined){askConfirm(`Sprint ${+ds.delsprint+1} löschen?`,()=>{S.sprints.splice(+ds.delsprint,1);});return;}
+  else if(act==="newp"){askConfirm("Neues Projekt anlegen? Der aktuelle Stand wird überschrieben – vorher ggf. als .json speichern.",()=>{S=freshProject();});return;}
+  else if(act==="demo"){askConfirm("Beispielprojekt laden? Der aktuelle Stand wird überschrieben.",()=>{S=demo();});return;}
+  else if(act==="saveJson"){const ok=await saveFile(`${slug()}_agile-stage-gate.json`,JSON.stringify(S,null,1),"application/json");flash(ok?"Projektdatei gespeichert ✓":"Speichern nicht möglich.");return;}
+  else if(act==="cy"){const f=window._cf;document.getElementById("confirm").innerHTML="";if(f){f();save();render();}return;}
+  else if(act==="cn"){document.getElementById("confirm").innerHTML="";return;}
+  else return;
+  save();render();
+});
+function askConfirm(msg,fn){window._cf=fn;document.getElementById("confirm").innerHTML=`<div class="modal row"><span style="flex:1">${esc(msg)}</span><button class="btn danger small" id="cy">Ja</button><button class="btn ghost small" id="cn">Abbrechen</button></div>`;window.scrollTo(0,0);}
+function flash(m){const t=document.getElementById("gtoast");t.textContent=m;setTimeout(()=>{t.textContent="";},3000);}
+// Tooltip
+const tip=document.getElementById("tip");
+document.addEventListener("mousemove",e=>{const el=e.target.closest&&e.target.closest("[data-tip]");
+  if(!el){tip.style.display="none";return;} tip.textContent=el.getAttribute("data-tip");tip.style.display="block";
+  const w=tip.offsetWidth;tip.style.left=Math.min(window.innerWidth-w-8,e.clientX+14)+"px";tip.style.top=(e.clientY+14)+"px";});
+
+/* ================= Beispiel ================= */
+function demo(){
+  const P=freshProject(); const s=P.stages; const st0="2026-01-05";
+  Object.assign(P.p,{name:"Smart-Service Beispiel",vision:"Industriekunden erhalten Zustandsdaten ihrer Anlagen als Abo-Service und vermeiden ungeplante Stillstände.",po:"A. Muster",team:"Entwicklung, Vertrieb, Service",gatekeeper:"Geschäftsführung, Leitung Vertrieb",start:st0,sprintLen:2,budgetUnit:"T€",uTech:"mittel",uMarkt:"hoch"});
+  const H=(t,type,i,status,crit,test)=>({id:uid(),t,type,stage:s[i].id,status,test,crit});
+  P.hyps=[H("Instandhalter haben ungeplante Stillstände als Top-3-Problem","Kunde/Problem",0,"ok",true,"8 von 10 Interviews nennen es"),
+    H("Kunden zahlen monatlich für Zustandsdaten","Wirtschaftlichkeit",1,"ok",true,"3 Absichtserklärungen"),
+    H("Händler verkaufen das Abo mit","Markt",1,"nok",false,"2 Händler sagen zu"),
+    H("Daten lassen sich lokal (Edge) auswerten","Technik",2,"test",true,"Prototyp läuft 4 Wochen stabil"),
+    H("Alarm-Genauigkeit > 90 %","Technik",2,"offen",true,"Feldtest bei Pilotkunde"),
+    H("Onboarding in < 1 Tag","Lösung/Wert",3,"offen",false,"Pilotkunde ohne Support")];
+  const sp=(i,start,goal,met,conf,b,res)=>({stage:s[i].id,start,end:addDays(start,14),goal,result:res,feedback:"",learn:"",next:"",goalMet:met,conf,budget:b,tested:{}});
+  P.sprints=[sp(0,"2026-01-05","Problem-Interviews mit 10 Kunden","ja",3,9,"10 Interviews, klares Problembild"),
+    sp(0,"2026-01-19","Zielsegment festlegen","ja",4,8,"Segment Industrie gewählt"),
+    sp(1,"2026-02-02","Wertversprechen testen","teilweise",3,13,"Landingpage + 5 Gespräche"),
+    sp(1,"2026-02-16","Preismodell testen","ja",4,14,"3 Absichtserklärungen"),
+    sp(1,"2026-03-02","Händlermodell prüfen","nein",3,12,"Händler skeptisch – Direktvertrieb"),
+    sp(1,"2026-03-16","Business Case finalisieren","ja",4,11,"Business Case steht"),
+    sp(2,"2026-03-30","Edge-Prototyp aufsetzen","ja",4,24,"Prototyp läuft im Labor"),
+    sp(2,"2026-04-13","Datenpipeline","teilweise",4,27,"Pipeline 80 %")];
+  P.gates[s[0].id]={date:"2026-02-02",must:{0:"ja",1:"ja",2:"ja",3:"ja"},should:{0:4,1:4,2:4,3:3,4:3},decision:"Go",released:3,reason:"Problem klar bestätigt.",cond:""};
+  P.gates[s[1].id]={date:"2026-03-30",must:{0:"ja",1:"ja",2:"ja",3:"ja"},should:{0:4,1:4,2:4,3:3,4:4},decision:"Go",released:6,reason:"Zahlungsbereitschaft belegt; Vertrieb direkt statt über Händler.",cond:"Händlerhypothese verworfen – Vertriebsplan anpassen."};
+  P.tab="auswertung"; return P;
+}
+render();
+</script>
+</body>
+</html>

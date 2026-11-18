@@ -6,7 +6,8 @@ Tools, die aus den Kursinhalten der CIM-Fortbildung entstanden sind.
 
 | Tool | Modul / Tag | Thema | Beschreibung |
 |---|---|---|---|
-| [Stage-Gate-Assistent](tools/stage-gate-assistent/) | Modul 1, Tag 3 | Innovationsprozesse (Cooper) | Fragt Projektdaten, Deliverables, Must-/Should-meet-Kriterien und die Gate-Entscheidung ab und erzeugt ein Gate-Protokoll als Markdown. |
+| [Stage-Gate-Assistent](tools/stage-gate-assistent/) | Modul 1, Tag 3 | Innovationsprozesse (Cooper) | Fragt Projektdaten, Deliverables, Must-/Should-meet-Kriterien und die Gate-Entscheidung ab und erzeugt ein Gate-Protokoll als Markdown. Alte Protokolle lassen sich laden und zum nächsten Gate fortführen. |
+| [Agile-Stage-Gate-Planer](tools/agile-stage-gate-planer/) | Modul 1, Tag 3 | Agile-Stage-Gate-Hybrid (Cooper) | Projekt aufsetzen und Sprint für Sprint führen: Stages, Hypothesen, Sprint-Reviews, Gates, grafische Auswertung und Projektdokument als Markdown. |
 
 ## Neues Tool hinzufügen
 

@@ -20,6 +20,12 @@ Führt durch ein Gate-Meeting nach dem Stage-Gate-Modell von Cooper (1990, 2008)
 
 Eingaben werden als Entwurf im Browser (localStorage) gehalten.
 
+## Alte Projekte laden & weiterführen
+
+- **Projekt laden (.md / .json)** liest ein früher erzeugtes Gate-Protokoll ein. Neue Protokolle enthalten die Daten unsichtbar als Kommentar; ältere Protokolle ohne diesen Kommentar werden aus den Tabellen und Abschnitten rekonstruiert (bitte kurz prüfen).
+- **Projekt speichern (.json)** sichert den Stand als Datei.
+- **Nächstes Gate vorbereiten** übernimmt Projektdaten und offene Maßnahmen, setzt Bewertung und Entscheidung zurück und hängt das abgeschlossene Gate an die Historie („Bisherige Gates“ im Protokoll).
+
 ## Entscheidungslogik (Vorschlag)
 
 - Ein Must-meet „Nein“ → **Kill** (Recycle, falls behebbar)

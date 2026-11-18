@@ -112,7 +112,8 @@ const b64d=t=>decodeURIComponent(escape(atob(t)));
 function wrap(text,max){const out=[];String(text||"").split(/\n/).forEach(par=>{let line="";par.split(/\s+/).filter(Boolean).forEach(w=>{
   while(w.length>max){ if(line){out.push(line);line="";} out.push(w.slice(0,max-1)+"-"); w=w.slice(max-1);}
   if(!line) line=w; else if((line+" "+w).length<=max) line+=" "+w; else {out.push(line);line=w;}});if(line)out.push(line);});return out;}
-function clip(lines,n){ if(lines.length<=n) return lines; const r=lines.slice(0,n); r[n-1]=r[n-1].replace(/.{0,2}$/,"")+"…"; return r; }
+function clip(lines,n){ if(lines.length<=n) return lines; const r=lines.slice(0,n); const cut=t=>t.replace(/.{0,2}$/,"")+"…";
+  r[n-1]=typeof r[n-1]==="string"?cut(r[n-1]):{...r[n-1],t:cut(r[n-1].t)}; return r; }
 function bulletLines(list,max){const out=[];list.forEach(it=>{wrap(it,max-2).forEach((l,i)=>out.push({t:l,first:i===0}));});return out;}
 function subtitle(sheet){const m=S.meta; const seg=sheet==="vpc"?(S.vpc.segment?`Kundensegment: ${S.vpc.segment}`:""):sheet==="epm"?(S.epm.segment||""):"";
   return [m.project,m.version?`Version ${m.version}`:"",seg,m.context,m.author,m.date?`Stand ${fd(m.date)}`:""].filter(Boolean).join(" · ");}

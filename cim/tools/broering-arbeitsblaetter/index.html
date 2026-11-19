@@ -255,7 +255,7 @@ function render(){
 function renderPreview(){const el=document.getElementById("pv"); if(el&&SVG[S.tab]) el.innerHTML=SVG[S.tab](); const fe=document.getElementById("fit"); if(fe) fe.innerHTML=fitCheck(); const te=document.getElementById("tpmwarn"); if(te) te.innerHTML=tpmCheck(); const ee=document.getElementById("epmwarn"); if(ee) ee.innerHTML=epmCheck();}
 const fld=(path,label,help,ph="",type="input",extra="")=>{const v=getPath(S,path)??"";
   return `<div><label>${label}</label>${help?`<p class="help">${help}</p>`:""}${type==="textarea"?`<textarea data-b="${path}" placeholder="${esc(ph)}" ${extra}>${esc(v)}</textarea>`:`<input data-b="${path}" value="${esc(v)}" placeholder="${esc(ph)}" ${extra}>`}</div>`;};
-const exportBar=k=>`<div class="exp"><button class="btn small" data-exp="${k}|png">PNG</button><button class="btn ghost small" data-exp="${k}|svg">SVG</button><button class="btn ghost small" data-exp="${k}|md">Blatt als .md</button><button class="btn ghost small" data-exp="${k}|json">Blatt als .json</button><span class="toast" id="t-${k}"></span></div>`;
+const exportBar=k=>`<div class="exp"><button class="btn small" data-exp="${k}|pdf">PDF</button><button class="btn ghost small" data-exp="${k}|png">PNG</button><button class="btn ghost small" data-exp="${k}|svg">SVG</button><button class="btn ghost small" data-exp="${k}|md">Blatt als .md</button><button class="btn ghost small" data-exp="${k}|json">Blatt als .json</button><span class="toast" id="t-${k}"></span></div>`;
 const preview=k=>`<div class="card"><h2>Vorschau – ${SHEETS[k]}</h2><p class="help">So sieht das Arbeitsblatt aus. Aktualisiert sich beim Tippen.</p><div class="preview" id="pv"></div>${exportBar(k)}</div>`;
 
 function fProjekt(){return `<div class="card"><h2>Projekt</h2><p class="help">Diese Angaben stehen in der Kopfzeile aller drei Arbeitsblätter.</p>
@@ -356,16 +356,17 @@ function svgToPng(svg,scale=2){return new Promise((res,rej)=>{const img=new Imag
   img.onerror=()=>rej(new Error("svg"));img.src=url;});}
 async function doExport(k,fmt,toastId){const t=document.getElementById(toastId)||document.getElementById("gtoast");let ok=false;
   try{
+    if(fmt==="pdf"){ if(t) t.textContent="PDF wird erstellt …"; ok=await saveBlob(base(k)+".pdf",await sheetsPdf(k==="all"?["tpm","vpc","epm"]:[k])); }
     if(fmt==="svg") ok=await saveBlob(base(k)+".svg",new Blob([SVG[k]()],{type:"image/svg+xml"}));
     if(fmt==="png") ok=await saveBlob(base(k)+".png",await svgToPng(SVG[k]()));
     if(fmt==="md") ok=await saveBlob(base(k)+".md",new Blob([buildMd(k==="all"?["tpm","vpc","epm"]:[k])],{type:"text/markdown"}));
     if(fmt==="json"){const d=k==="all"?S:{v:1,partial:[k],meta:S.meta,[k]:S[k]};ok=await saveBlob(base(k)+".json",new Blob([JSON.stringify(d,null,1)],{type:"application/json"}));}
   }catch(e){ok=false;}
   if(t){t.textContent=ok?"Gespeichert ✓":"Export nicht möglich.";setTimeout(()=>t.textContent="",3500);}}
-function fExport(){return `<div class="card"><h2>Alles exportieren</h2><p class="help">Ein Markdown-Dokument mit allen drei Arbeitsblättern als Tabellen bzw. Listen. Die Eingaben stecken unsichtbar im Dokument – mit „Laden“ kannst du später daran weiterarbeiten.</p>
-<div class="exp"><button class="btn small" data-exp="all|md">Alle Blätter als .md</button><button class="btn ghost small" data-exp="all|json">Alle Blätter als .json</button><button class="btn ghost small" id="copymd">Markdown kopieren</button><span class="toast" id="t-all"></span></div>
+function fExport(){return `<div class="card"><h2>Alles exportieren</h2><p class="help">Das PDF enthält die drei Arbeitsblätter im Original-Layout (A4 quer) und dahinter den vollständigen Text, falls auf dem Blatt etwas gekürzt ist. Das Markdown-Dokument enthält alle drei Arbeitsblätter als Tabellen bzw. Listen. Die Eingaben stecken unsichtbar im Dokument – mit „Laden“ kannst du später daran weiterarbeiten.</p>
+<div class="exp"><button class="btn small" data-exp="all|pdf">Alle Blätter als PDF</button><button class="btn ghost small" data-exp="all|md">Alle Blätter als .md</button><button class="btn ghost small" data-exp="all|json">Alle Blätter als .json</button><button class="btn ghost small" id="copymd">Markdown kopieren</button><span class="toast" id="t-all"></span></div>
 <pre id="md">${esc(buildMd(["tpm","vpc","epm"]))}</pre></div>
-<div class="card"><h2>Formate</h2><p class="help" style="margin:0"><b>.md</b> – lesbar in GitHub, Obsidian, Notion; lässt sich wieder laden. <b>.json</b> – reine Projektdatei zum Laden. <b>.svg</b> – Vektorgrafik, editierbar in PowerPoint (Grafik einfügen → in Form konvertieren), Inkscape oder Illustrator. <b>.png</b> – Bild in doppelter Auflösung für Präsentationen und Poster. Für Value Proposition Canvas und Ecosystem Pie Model gibt es kein offenes Standard-Austauschformat; Strategyzer und Whiteboard-Tools nutzen eigene, geschlossene Formate.</p></div>`;}
+<div class="card"><h2>Formate</h2><p class="help" style="margin:0"><b>.pdf</b> – zum Weitergeben und Drucken: Arbeitsblätter plus vollständiger Text. <b>.md</b> – lesbar in GitHub, Obsidian, Notion; lässt sich wieder laden. <b>.json</b> – reine Projektdatei zum Laden. <b>.svg</b> – Vektorgrafik, editierbar in PowerPoint (Grafik einfügen → in Form konvertieren), Inkscape oder Illustrator. <b>.png</b> – Bild in doppelter Auflösung für Präsentationen und Poster. Für Value Proposition Canvas und Ecosystem Pie Model gibt es kein offenes Standard-Austauschformat; Strategyzer und Whiteboard-Tools nutzen eigene, geschlossene Formate.</p></div>`;}
 function setupExport(){const b=document.getElementById("copymd");if(b)b.onclick=async()=>{const t=document.getElementById("t-all");try{await navigator.clipboard.writeText(buildMd(["tpm","vpc","epm"]));t.textContent="Kopiert ✓";}catch(e){const r=document.createRange();r.selectNodeContents(document.getElementById("md"));const s=getSelection();s.removeAllRanges();s.addRange(r);t.textContent="Markiert – Strg/Cmd+C";}};}
 
 /* ===================== Laden ===================== */
@@ -408,6 +409,75 @@ document.addEventListener("click",async e=>{const t=e.target.closest("button,[da
   if(id==="cy"){document.getElementById("confirm").innerHTML="";window._cf&&window._cf();save();render();return;}
   if(id==="cn"){document.getElementById("confirm").innerHTML="";return;}
 });
+
+
+/* ===================== PDF-Export (jsPDF, wird bei Bedarf geladen) ===================== */
+const PDF_LIBS=["https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js","https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"];
+function pdfLoadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("Bibliothek nicht ladbar: "+src));document.head.appendChild(s);});}
+async function pdfLibs(){ if(!(window.jspdf&&window.jspdf.jsPDF)) await pdfLoadScript(PDF_LIBS[0]); const probe=new window.jspdf.jsPDF(); if(typeof probe.autoTable!=="function") await pdfLoadScript(PDF_LIBS[1]); return window.jspdf.jsPDF; }
+// Standardschriften können nur Windows-1252 – alles andere ersetzen
+const PDF_MAP={"✅ ":"","❌ ":"","⏳ ":"","🔴 ":"","🟡 ":"","🟢 ":"","✅":"ja","❌":"nein","⏳":"offen","★":"*","→":"->","←":"<-","↔":"<->","≥":">=","≤":"<=","≈":"~","✓":"ok","✗":"x","₀":"0","₁":"1","₂":"2","₃":"3","₄":"4","₅":"5","₆":"6","₇":"7","₈":"8","₉":"9"," ":" ","↑":"^","↓":"v","−":"-"};
+const PDF_CP1252="€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+function pdfSafe(t){ let s=String(t??""); for(const [k,v] of Object.entries(PDF_MAP)) s=s.split(k).join(v); return [...s].map(c=>c.charCodeAt(0)<=255||PDF_CP1252.includes(c)?c:"?").join(""); }
+function pdfInline(t){ return pdfSafe(String(t).replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/<br\s*\/?>/g,"\n").replace(/\\\|/g,"|").replace(/`([^`]+)`/g,"$1")); }
+function pdfCells(line){ return line.trim().replace(/^\|/,"").replace(/\|$/,"").split(/(?<!\\)\|/).map(c=>pdfInline(c.trim()).replace(/\*\*(.+?)\*\*/g,"$1")); }
+// Markdown -> PDF. opts: {title, doc (vorhandenes Dokument, dann neue Hochformat-Seite), skipMermaid}
+function pdfFromMd(jsPDF,md,opts={}){
+  const M=18, W=210, H=297, CW=W-2*M, BOTTOM=H-M-6;
+  let doc=opts.doc; if(doc){ doc.addPage("a4","portrait"); } else doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
+  let y=M;
+  const ensure=h=>{ if(y+h>BOTTOM){ doc.addPage("a4","portrait"); y=M; } };
+  const rich=(text,{size=10,x=M,width=CW,lh=1.32,color=[29,31,34],italic=false,boldAll=false}={})=>{
+    doc.setFontSize(size); doc.setTextColor(...color);
+    const segs=[]; String(text).split(/(\*\*[^*]+\*\*)/).forEach(p=>{ if(!p) return; const b=/^\*\*.*\*\*$/.test(p); (b?p.slice(2,-2):p).split(/(\s+)/).forEach(w=>{ if(w) segs.push({w,b:b||boldAll}); }); });
+    const style=b=>italic?(b?"bolditalic":"italic"):(b?"bold":"normal");
+    const lineH=size*0.3528*lh; let lines=[[]], cur=0;
+    segs.forEach(s=>{ doc.setFont("helvetica",style(s.b)); if(/^\s+$/.test(s.w)){ if(lines.at(-1).length){ lines.at(-1).push({...s,w:" "}); cur+=doc.getTextWidth(" "); } return; }
+      const wd=doc.getTextWidth(s.w); if(cur+wd>width&&lines.at(-1).length){ const L=lines.at(-1); while(L.length&&L.at(-1).w===" ") L.pop(); lines.push([]); cur=0; } lines.at(-1).push(s); cur+=wd; });
+    lines.forEach(L=>{ ensure(lineH); let xx=x; L.forEach(s=>{ doc.setFont("helvetica",style(s.b)); doc.text(s.w,xx,y+size*0.3528); xx+=doc.getTextWidth(s.w); }); y+=lineH; });
+  };
+  const lines=String(md).split("\n"); let i=0, inCode=false, codeLang="", para=[];
+  const flush=()=>{ if(para.length){ rich(pdfInline(para.join(" ")).replace(/^\*(?!\*)(.*)\*$/,"$1")); y+=1.8; para=[]; } };
+  while(i<lines.length){ const raw=lines[i]; const t=raw.trim();
+    if(inCode){ if(t.startsWith("```")){ inCode=false; y+=2; } else if(!(codeLang==="mermaid"&&opts.skipMermaid!==false)){ ensure(4); doc.setFont("courier","normal"); doc.setFontSize(8.5); doc.setTextColor(60); doc.text(pdfSafe(raw),M+2,y+3); y+=3.8; } i++; continue; }
+    if(t.startsWith("```")){ flush(); inCode=true; codeLang=t.slice(3).trim(); i++; continue; }
+    if(t.startsWith("<!--")){ flush(); i++; continue; }
+    if(!t){ flush(); i++; continue; }
+    if(/^#{1,3}\s/.test(t)){ flush(); const lvl=t.match(/^#+/)[0].length, txt=pdfInline(t.replace(/^#+\s*/,""));
+      const size=[0,17,13.5,11.5][lvl]; y+=lvl===1?0:3; ensure(size*0.5+8);
+      rich(txt,{size,boldAll:true,color:lvl===1?[20,20,20]:[31,95,139]});
+      if(lvl<=2){ doc.setDrawColor(lvl===1?120:200); doc.setLineWidth(lvl===1?0.5:0.25); doc.line(M,y+0.5,W-M,y+0.5); y+=3; } else y+=1; i++; continue; }
+    if(/^---+$/.test(t)){ flush(); ensure(5); doc.setDrawColor(200); doc.setLineWidth(0.2); doc.line(M,y+2,W-M,y+2); y+=5; i++; continue; }
+    if(t.startsWith("|")){ flush(); const rows=[]; while(i<lines.length&&lines[i].trim().startsWith("|")){ if(!/^\|\s*:?-{2,}/.test(lines[i].trim())) rows.push(pdfCells(lines[i])); i++; }
+      const head=rows.shift()||[]; const noHead=head.every(c=>!c); ensure(12);
+      doc.autoTable({startY:y,head:noHead?undefined:[head],body:rows,margin:{left:M,right:M},theme:"grid",
+        styles:{font:"helvetica",fontSize:8.6,cellPadding:1.6,textColor:[29,31,34],lineColor:[210,210,205],lineWidth:0.15,overflow:"linebreak"},
+        headStyles:{fillColor:[31,95,139],textColor:255,fontStyle:"bold"},columnStyles:noHead?{0:{fontStyle:"bold",cellWidth:48}}:{} ,
+        didDrawPage:()=>{}});
+      y=doc.lastAutoTable.finalY+4; continue; }
+    if(/^[-*]\s+/.test(t)){ flush(); while(i<lines.length&&/^\s*[-*]\s+/.test(lines[i])){ const lt=lines[i].replace(/^\s*[-*]\s+/,""); const ind=/^\s{2,}/.test(lines[i])?5:0; ensure(5);
+        doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(29,31,34); doc.text("•",M+1+ind,y+3.5); rich(pdfInline(lt),{x:M+5+ind,width:CW-5-ind}); y+=0.6; i++; } y+=1.6; continue; }
+    if(/^\d+\.\s+/.test(t)){ flush(); while(i<lines.length&&/^\d+\.\s+/.test(lines[i].trim())){ const m=lines[i].trim().match(/^(\d+)\.\s+(.*)$/); ensure(5); doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(29,31,34); doc.text(m[1]+".",M+1,y+3.5); rich(pdfInline(m[2]),{x:M+6,width:CW-6}); y+=0.6; i++; } y+=1.6; continue; }
+    if(t.startsWith(">")){ flush(); const y0=y; rich(pdfInline(t.replace(/^>\s*/,"")),{x:M+4,width:CW-4,italic:true,color:[70,70,70]}); doc.setDrawColor(31,95,139); doc.setLineWidth(0.8); doc.line(M+1,y0+0.5,M+1,y-0.5); y+=2; i++; continue; }
+    para.push(t); i++; }
+  flush();
+  return {doc,get y(){return y;},set y(v){y=v;},ensure,M,CW};
+}
+function pdfFooter(doc,title,from=1){ const n=doc.getNumberOfPages(); for(let p=from;p<=n;p++){ doc.setPage(p); const w=doc.internal.pageSize.getWidth(), h=doc.internal.pageSize.getHeight();
+  doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(140); doc.text(pdfSafe(title||""),12,h-6); doc.text(`Seite ${p} von ${n}`,w-12,h-6,{align:"right"}); } }
+// SVG-String -> PNG-DataURL (für Diagramme im PDF)
+function pdfSvgToPng(svg,w,h,scale=2.5,fmt="png"){ return new Promise((res,rej)=>{ const img=new Image(); const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+  img.onload=()=>{ try{ const c=document.createElement("canvas"); c.width=Math.round(w*scale); c.height=Math.round(h*scale); const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); res(fmt==="jpeg"?c.toDataURL("image/jpeg",0.9):c.toDataURL("image/png")); }catch(e){rej(e);} };
+  img.onerror=()=>rej(new Error("SVG")); img.src=url; }); }
+
+async function sheetsPdf(keys){
+  const J=await pdfLibs(); const doc=new J({unit:"mm",format:"a4",orientation:"landscape",compress:true});
+  for(let i=0;i<keys.length;i++){ if(i) doc.addPage("a4","landscape"); doc.addImage(await pdfSvgToPng(SVG[keys[i]](),1190,842,3,"jpeg"),"JPEG",0,0,297,210,undefined,"FAST"); }
+  const first=doc.getNumberOfPages()+1;
+  pdfFromMd(J,buildMd(keys).replace(/^# (.*)$/m,"# $1 – vollständige Inhalte"),{doc});
+  pdfFooter(doc,`${S.meta.project||"Arbeitsblätter"} · Anhang`,first);
+  return doc.output("blob");
+}
 
 render();
 </script>

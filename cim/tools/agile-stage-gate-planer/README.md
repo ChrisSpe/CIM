@@ -17,7 +17,7 @@ Ein Projekt im Agile-Stage-Gate-Hybrid aufsetzen und iterativ führen: Gates ble
 4. **Sprints** – nach jedem Sprint-Review: Ziel, Ergebnis, Feedback, Learnings, Zielerreichung, Zuversicht 1–5, Budget, getestete Hypothesen
 5. **Gates** – Must-/Should-meet, Vorschlag und Entscheidung (Go / Hold / Recycle / Pivot / Kill), freigegebene Sprints
 6. **Auswertung** – Kennzahlen, Roadmap Plan vs. Ist, Budget je Stage, Hypothesen-Status, Zuversicht über die Sprints, Gate-Scores
-7. **Export** – Projektdokument als `.md` mit Mermaid-Roadmap (Gantt) und Hypothesen-Diagramm
+7. **Export** – Projektdokument als **PDF** (inkl. aller Diagramme der Auswertung) oder als `.md` mit Mermaid-Roadmap (Gantt) und Hypothesen-Diagramm
 
 „Beispiel laden“ füllt ein Demo-Projekt, um die Auswertung zu sehen.
 

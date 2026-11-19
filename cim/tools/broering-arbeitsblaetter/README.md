@@ -21,6 +21,7 @@ Ein Tool statt drei, weil die Blätter aufeinander aufbauen (Projektdaten nur ei
 
 | Format | Wofür | Laden möglich |
 |---|---|---|
+| `.pdf` | Arbeitsblätter im Original-Layout (A4 quer) plus vollständiger Text als Anhang – zum Weitergeben und Drucken | nein |
 | `.md` | lesbar in GitHub, Obsidian, Notion; Daten stecken unsichtbar als Kommentar drin | ja |
 | `.json` | reine Projektdatei | ja |
 | `.svg` | Vektorgrafik des Arbeitsblatts, editierbar in PowerPoint, Inkscape, Illustrator | nein |

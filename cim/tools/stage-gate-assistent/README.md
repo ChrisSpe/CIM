@@ -16,7 +16,7 @@ Führt durch ein Gate-Meeting nach dem Stage-Gate-Modell von Cooper (1990, 2008)
 3. **Must-meet** – K.-o.-Kriterien (Ja / Nein / Offen)
 4. **Should-meet** – gewichtetes Scoring 1–5, Gewichte anpassbar
 5. **Entscheidung** – Vorschlag Go / Kill / Hold / Recycle, Gatekeeper-Entscheidung, Maßnahmen, nächster Termin
-6. **Dokument** – Vorschau, Download `.md`, Kopieren
+6. **Dokument** – Vorschau, Download als PDF oder `.md`, Kopieren
 
 Eingaben werden als Entwurf im Browser (localStorage) gehalten.
 
@@ -45,4 +45,7 @@ Die Schwellen sind eigene Setzungen, nicht aus dem Kurs. Die Entscheidung treffe
 
 ## Ausgabe
 
+**PDF:** Gate-Protokoll mit Tabellen und Seitenzahlen – zum Weitergeben und Ablegen.
+
+**Markdown:** 
 `gate-protokoll_<projekt>_<gate>_<datum>.md` mit Stammdaten, Entscheidung, Prozesswahl, Deliverables, Kriterientabellen, Score, Maßnahmen und nächstem Termin.

@@ -472,8 +472,8 @@ const b64e=t=>btoa(unescape(encodeURIComponent(t)));
 const b64d=t=>decodeURIComponent(escape(atob(t)));
 
 /* ================= Export ================= */
-function tExport(){return `<div class="card"><h2>Projektdokument (.md)</h2><p class="hint">Enthält Steckbrief, Status, Plan, Roadmap und Hypothesen-Diagramm (Mermaid), Sprint-Log und Gate-Entscheidungen. Nach jedem Sprint oder Gate neu exportieren.</p>
-<div class="row" style="margin-bottom:10px"><button class="btn" id="dlmd">.md herunterladen</button><button class="btn ghost" id="copymd">Kopieren</button><span class="toast" id="toast"></span></div>
+function tExport(){return `<div class="card"><h2>Projektdokument (PDF / .md)</h2><p class="hint">Das PDF enthält das Dokument plus alle Diagramme der Auswertung. Das .md enthält Steckbrief, Status, Plan, Roadmap und Hypothesen-Diagramm (Mermaid), Sprint-Log und Gate-Entscheidungen. Nach jedem Sprint oder Gate neu exportieren.</p>
+<div class="row" style="margin-bottom:10px"><button class="btn" id="dlpdf">PDF mit Auswertung</button><button class="btn ghost" id="dlmd">.md herunterladen</button><button class="btn ghost" id="copymd">Kopieren</button><span class="toast" id="toast"></span></div>
 <pre id="md">${esc(buildMd())}</pre></div>
 <div class="card"><h2>Weiterarbeiten</h2><p class="hint" style="margin:0">Der Stand bleibt in diesem Browser gespeichert. Sicherer: oben <b>Projekt speichern (.json)</b> und die Datei z. B. im Projektordner ablegen. Mit <b>Projekt laden</b> machst du später genau dort weiter – das geht auch direkt mit einem exportierten .md-Dokument.</p></div>`;}
 let DL=null;
@@ -486,6 +486,7 @@ async function saveFile(name,text,mime){
 const slug=()=>(S.p.name||"projekt").toLowerCase().replace(/[äöüß]/g,c=>({ä:"ae",ö:"oe",ü:"ue",ß:"ss"}[c])).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"projekt";
 function setupExport(){
   const t=document.getElementById("toast");
+  document.getElementById("dlpdf").onclick=async()=>{t.textContent="PDF wird erstellt …";try{t.textContent=(await saveFile(`${slug()}_agile-stage-gate_${today()}.pdf`,await planerPdf(),"application/pdf"))?"PDF gespeichert ✓":"Speichern abgebrochen.";}catch(e){t.textContent="PDF nicht möglich: "+e.message;}};
   document.getElementById("dlmd").onclick=async()=>{t.textContent=(await saveFile(`${slug()}_agile-stage-gate_${today()}.md`,buildMd(),"text/markdown"))?"Gespeichert ✓":"Download nicht möglich – nutze Kopieren.";};
   document.getElementById("copymd").onclick=async()=>{try{await navigator.clipboard.writeText(buildMd());t.textContent="Kopiert ✓";}catch(e){const r=document.createRange();r.selectNodeContents(document.getElementById("md"));const s=getSelection();s.removeAllRanges();s.addRange(r);t.textContent="Markiert – mit Strg/Cmd+C kopieren";}};
 }
@@ -561,6 +562,97 @@ function demo(){
   P.gates[s[1].id]={date:"2026-03-30",must:{0:"ja",1:"ja",2:"ja",3:"ja"},should:{0:4,1:4,2:4,3:3,4:4},decision:"Go",released:6,reason:"Zahlungsbereitschaft belegt; Vertrieb direkt statt über Händler.",cond:"Händlerhypothese verworfen – Vertriebsplan anpassen."};
   P.tab="auswertung"; return P;
 }
+
+/* ===================== PDF-Export (jsPDF, wird bei Bedarf geladen) ===================== */
+const PDF_LIBS=["https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js","https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"];
+function pdfLoadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("Bibliothek nicht ladbar: "+src));document.head.appendChild(s);});}
+async function pdfLibs(){ if(!(window.jspdf&&window.jspdf.jsPDF)) await pdfLoadScript(PDF_LIBS[0]); const probe=new window.jspdf.jsPDF(); if(typeof probe.autoTable!=="function") await pdfLoadScript(PDF_LIBS[1]); return window.jspdf.jsPDF; }
+// Standardschriften können nur Windows-1252 – alles andere ersetzen
+const PDF_MAP={"✅ ":"","❌ ":"","⏳ ":"","🔴 ":"","🟡 ":"","🟢 ":"","✅":"ja","❌":"nein","⏳":"offen","★":"*","→":"->","←":"<-","↔":"<->","≥":">=","≤":"<=","≈":"~","✓":"ok","✗":"x","₀":"0","₁":"1","₂":"2","₃":"3","₄":"4","₅":"5","₆":"6","₇":"7","₈":"8","₉":"9"," ":" ","↑":"^","↓":"v","−":"-"};
+const PDF_CP1252="€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+function pdfSafe(t){ let s=String(t??""); for(const [k,v] of Object.entries(PDF_MAP)) s=s.split(k).join(v); return [...s].map(c=>c.charCodeAt(0)<=255||PDF_CP1252.includes(c)?c:"?").join(""); }
+function pdfInline(t){ return pdfSafe(String(t).replace(/\[([^\]]+)\]\([^)]+\)/g,"$1").replace(/<br\s*\/?>/g,"\n").replace(/\\\|/g,"|").replace(/`([^`]+)`/g,"$1")); }
+function pdfCells(line){ return line.trim().replace(/^\|/,"").replace(/\|$/,"").split(/(?<!\\)\|/).map(c=>pdfInline(c.trim()).replace(/\*\*(.+?)\*\*/g,"$1")); }
+// Markdown -> PDF. opts: {title, doc (vorhandenes Dokument, dann neue Hochformat-Seite), skipMermaid}
+function pdfFromMd(jsPDF,md,opts={}){
+  const M=18, W=210, H=297, CW=W-2*M, BOTTOM=H-M-6;
+  let doc=opts.doc; if(doc){ doc.addPage("a4","portrait"); } else doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait",compress:true});
+  let y=M;
+  const ensure=h=>{ if(y+h>BOTTOM){ doc.addPage("a4","portrait"); y=M; } };
+  const rich=(text,{size=10,x=M,width=CW,lh=1.32,color=[29,31,34],italic=false,boldAll=false}={})=>{
+    doc.setFontSize(size); doc.setTextColor(...color);
+    const segs=[]; String(text).split(/(\*\*[^*]+\*\*)/).forEach(p=>{ if(!p) return; const b=/^\*\*.*\*\*$/.test(p); (b?p.slice(2,-2):p).split(/(\s+)/).forEach(w=>{ if(w) segs.push({w,b:b||boldAll}); }); });
+    const style=b=>italic?(b?"bolditalic":"italic"):(b?"bold":"normal");
+    const lineH=size*0.3528*lh; let lines=[[]], cur=0;
+    segs.forEach(s=>{ doc.setFont("helvetica",style(s.b)); if(/^\s+$/.test(s.w)){ if(lines.at(-1).length){ lines.at(-1).push({...s,w:" "}); cur+=doc.getTextWidth(" "); } return; }
+      const wd=doc.getTextWidth(s.w); if(cur+wd>width&&lines.at(-1).length){ const L=lines.at(-1); while(L.length&&L.at(-1).w===" ") L.pop(); lines.push([]); cur=0; } lines.at(-1).push(s); cur+=wd; });
+    lines.forEach(L=>{ ensure(lineH); let xx=x; L.forEach(s=>{ doc.setFont("helvetica",style(s.b)); doc.text(s.w,xx,y+size*0.3528); xx+=doc.getTextWidth(s.w); }); y+=lineH; });
+  };
+  const lines=String(md).split("\n"); let i=0, inCode=false, codeLang="", para=[];
+  const flush=()=>{ if(para.length){ rich(pdfInline(para.join(" ")).replace(/^\*(?!\*)(.*)\*$/,"$1")); y+=1.8; para=[]; } };
+  while(i<lines.length){ const raw=lines[i]; const t=raw.trim();
+    if(inCode){ if(t.startsWith("```")){ inCode=false; y+=2; } else if(!(codeLang==="mermaid"&&opts.skipMermaid!==false)){ ensure(4); doc.setFont("courier","normal"); doc.setFontSize(8.5); doc.setTextColor(60); doc.text(pdfSafe(raw),M+2,y+3); y+=3.8; } i++; continue; }
+    if(t.startsWith("```")){ flush(); inCode=true; codeLang=t.slice(3).trim(); i++; continue; }
+    if(t.startsWith("<!--")){ flush(); i++; continue; }
+    if(!t){ flush(); i++; continue; }
+    if(/^#{1,3}\s/.test(t)){ flush(); const lvl=t.match(/^#+/)[0].length, txt=pdfInline(t.replace(/^#+\s*/,""));
+      const size=[0,17,13.5,11.5][lvl]; y+=lvl===1?0:3; ensure(size*0.5+8);
+      rich(txt,{size,boldAll:true,color:lvl===1?[20,20,20]:[31,95,139]});
+      if(lvl<=2){ doc.setDrawColor(lvl===1?120:200); doc.setLineWidth(lvl===1?0.5:0.25); doc.line(M,y+0.5,W-M,y+0.5); y+=3; } else y+=1; i++; continue; }
+    if(/^---+$/.test(t)){ flush(); ensure(5); doc.setDrawColor(200); doc.setLineWidth(0.2); doc.line(M,y+2,W-M,y+2); y+=5; i++; continue; }
+    if(t.startsWith("|")){ flush(); const rows=[]; while(i<lines.length&&lines[i].trim().startsWith("|")){ if(!/^\|\s*:?-{2,}/.test(lines[i].trim())) rows.push(pdfCells(lines[i])); i++; }
+      const head=rows.shift()||[]; const noHead=head.every(c=>!c); ensure(12);
+      doc.autoTable({startY:y,head:noHead?undefined:[head],body:rows,margin:{left:M,right:M},theme:"grid",
+        styles:{font:"helvetica",fontSize:8.6,cellPadding:1.6,textColor:[29,31,34],lineColor:[210,210,205],lineWidth:0.15,overflow:"linebreak"},
+        headStyles:{fillColor:[31,95,139],textColor:255,fontStyle:"bold"},columnStyles:noHead?{0:{fontStyle:"bold",cellWidth:48}}:{} ,
+        didDrawPage:()=>{}});
+      y=doc.lastAutoTable.finalY+4; continue; }
+    if(/^[-*]\s+/.test(t)){ flush(); while(i<lines.length&&/^\s*[-*]\s+/.test(lines[i])){ const lt=lines[i].replace(/^\s*[-*]\s+/,""); const ind=/^\s{2,}/.test(lines[i])?5:0; ensure(5);
+        doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(29,31,34); doc.text("•",M+1+ind,y+3.5); rich(pdfInline(lt),{x:M+5+ind,width:CW-5-ind}); y+=0.6; i++; } y+=1.6; continue; }
+    if(/^\d+\.\s+/.test(t)){ flush(); while(i<lines.length&&/^\d+\.\s+/.test(lines[i].trim())){ const m=lines[i].trim().match(/^(\d+)\.\s+(.*)$/); ensure(5); doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(29,31,34); doc.text(m[1]+".",M+1,y+3.5); rich(pdfInline(m[2]),{x:M+6,width:CW-6}); y+=0.6; i++; } y+=1.6; continue; }
+    if(t.startsWith(">")){ flush(); const y0=y; rich(pdfInline(t.replace(/^>\s*/,"")),{x:M+4,width:CW-4,italic:true,color:[70,70,70]}); doc.setDrawColor(31,95,139); doc.setLineWidth(0.8); doc.line(M+1,y0+0.5,M+1,y-0.5); y+=2; i++; continue; }
+    para.push(t); i++; }
+  flush();
+  return {doc,get y(){return y;},set y(v){y=v;},ensure,M,CW};
+}
+function pdfFooter(doc,title,from=1){ const n=doc.getNumberOfPages(); for(let p=from;p<=n;p++){ doc.setPage(p); const w=doc.internal.pageSize.getWidth(), h=doc.internal.pageSize.getHeight();
+  doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(140); doc.text(pdfSafe(title||""),12,h-6); doc.text(`Seite ${p} von ${n}`,w-12,h-6,{align:"right"}); } }
+// SVG-String -> PNG-DataURL (für Diagramme im PDF)
+function pdfSvgToPng(svg,w,h,scale=2.5,fmt="png"){ return new Promise((res,rej)=>{ const img=new Image(); const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+  img.onload=()=>{ try{ const c=document.createElement("canvas"); c.width=Math.round(w*scale); c.height=Math.round(h*scale); const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); res(fmt==="jpeg"?c.toDataURL("image/jpeg",0.9):c.toDataURL("image/png")); }catch(e){rej(e);} };
+  img.onerror=()=>rej(new Error("SVG")); img.src=url; }); }
+
+const PDF_LIGHT={"page":"#f9f9f7","surface-1":"#fcfcfb","card":"#ffffff","text-primary":"#0b0b0b","text-secondary":"#52514e","muted":"#898781","grid":"#e1e0d9","axis":"#c3c2b7","series-1":"#2a78d6","series-2":"#eb6834","series-7":"#6250d6","accent":"#2a78d6","good":"#0ca30c","warning":"#fab219","serious":"#ec835a","critical":"#d03b3b","neutral":"#c3c2b7"};
+const pdfVar=s=>String(s).replace(/var\(--([a-z0-9-]+)\)/g,(_,k)=>PDF_LIGHT[k]||"#888888");
+const hexRgb=h=>{const m=/^#?([0-9a-f]{6})$/i.exec(h||"");const n=m?parseInt(m[1],16):0x888888;return [n>>16&255,n>>8&255,n&255];};
+async function planerPdf(){
+  const J=await pdfLibs();
+  const md=buildMd().replace(/```mermaid\ngantt[\s\S]*?```/,"Die Roadmap als Diagramm steht unter „Grafische Auswertung“ am Ende des Dokuments.").replace(/```mermaid\npie[\s\S]*?```\n?/,"")
+    .replace(/ Mermaid-Diagramme werden z\. B\. auf GitHub, in Obsidian und Notion direkt gerendert\./,"");
+  const r=pdfFromMd(J,md); const doc=r.doc;
+  doc.addPage("a4","portrait"); r.y=r.M;
+  doc.setFont("helvetica","bold"); doc.setFontSize(17); doc.setTextColor(20); doc.text("Grafische Auswertung",r.M,r.y+6); r.y+=9; doc.setDrawColor(120); doc.setLineWidth(0.5); doc.line(r.M,r.y,210-r.M,r.y); r.y+=6;
+  const charts=[["Roadmap: Plan vs. Ist",chartRoadmap()],["Budget je Stage ("+S.p.budgetUnit+")",chartBudget()],["Hypothesen-Status je Stage",chartHyp()],["Zuversicht über die Sprints",chartConf()],["Gate-Scores",chartGates()]];
+  for(const [title,html] of charts){
+    const m=html.match(/<svg[\s\S]*<\/svg>/); if(!m) continue;
+    const vb=m[0].match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/); const w=+vb[1], h=+vb[2];
+    const svg=pdfVar(m[0]).replace("<svg ",'<svg xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif" ');
+    const png=await pdfSvgToPng(svg,w,h,2.4); const ih=r.CW*h/w;
+    r.ensure(ih+16);
+    doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(31,95,139); doc.text(pdfSafe(title),r.M,r.y+4); r.y+=7;
+    const leg=new DOMParser().parseFromString(html,"text/html").querySelectorAll(".legend span"); let lx=r.M;
+    doc.setFont("helvetica","normal"); doc.setFontSize(8);
+    leg.forEach(sp=>{ const st=sp.querySelector("i")?.getAttribute("style")||""; const bg=(st.match(/background:([^;]+)/)||[])[1]; const txt=pdfSafe(sp.textContent.trim());
+      const tw=doc.getTextWidth(txt)+7; if(lx+tw>210-r.M){ lx=r.M; r.y+=4.5; }
+      if(bg&&!/surface/.test(bg)){ doc.setFillColor(...hexRgb(pdfVar(bg).trim())); doc.rect(lx,r.y-0.2,3,3,"F"); } else { doc.setDrawColor(137); doc.setLineWidth(0.3); doc.rect(lx,r.y-0.2,3,3); }
+      doc.setTextColor(82); doc.text(txt,lx+4.2,r.y+2.4); lx+=tw; });
+    if(leg.length) r.y+=5.5;
+    doc.addImage(png,"PNG",r.M,r.y,r.CW,ih,undefined,"FAST"); r.y+=ih+8;
+  }
+  pdfFooter(doc,`${S.p.name||"Projekt"} · Agile-Stage-Gate`);
+  return doc.output("blob");
+}
+
 render();
 </script>
 </body>

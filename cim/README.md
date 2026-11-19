@@ -15,3 +15,7 @@ Tools, die aus den Kursinhalten der CIM-Fortbildung entstanden sind.
 1. `_vorlage-tool/` nach `tools/<tool-name>/` kopieren.
 2. `README.md` ausfüllen, Tool als `index.html` (oder Skript) ablegen.
 3. Zeile in der Tabelle oben ergänzen.
+
+## PDF-Export
+
+Alle Tools erzeugen auf Knopfdruck ein PDF direkt im Browser. Dafür werden beim ersten Klick die Bibliotheken [jsPDF](https://github.com/parallax/jsPDF) und [jsPDF-AutoTable](https://github.com/simonbengtsson/jsPDF-AutoTable) (beide MIT) von cdn.jsdelivr.net nachgeladen – dafür ist eine Internetverbindung nötig.
